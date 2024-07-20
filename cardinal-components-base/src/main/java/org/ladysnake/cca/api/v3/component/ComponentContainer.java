@@ -22,8 +22,7 @@
  */
 package org.ladysnake.cca.api.v3.component;
 
-import com.demonwav.mcdev.annotations.CheckEnv;
-import com.demonwav.mcdev.annotations.Env;
+import net.fabricmc.api.EnvType;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryWrapper;
 import org.jetbrains.annotations.ApiStatus;
@@ -36,6 +35,7 @@ import org.ladysnake.cca.api.v3.component.load.ServerLoadAwareComponent;
 import org.ladysnake.cca.api.v3.component.load.ServerUnloadAwareComponent;
 import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
 import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
+import org.ladysnake.cca.api.v3.util.CheckEnvironment;
 import org.ladysnake.cca.api.v3.util.NbtSerializable;
 import org.ladysnake.cca.internal.base.GenericContainerBuilder;
 import org.ladysnake.cca.internal.base.asm.AsmGeneratedCallback;
@@ -66,7 +66,7 @@ public interface ComponentContainer extends NbtSerializable {
     @AsmGeneratedCallback(ServerTickingComponent.class)
     void tickServerComponents();
 
-    @CheckEnv(Env.CLIENT)
+    @CheckEnvironment(EnvType.CLIENT)
     @AsmGeneratedCallback(ClientTickingComponent.class)
     void tickClientComponents();
 
@@ -79,12 +79,12 @@ public interface ComponentContainer extends NbtSerializable {
     void onServerUnload();
 
     @ApiStatus.Experimental
-    @CheckEnv(Env.CLIENT)
+    @CheckEnvironment(EnvType.CLIENT)
     @AsmGeneratedCallback(ClientLoadAwareComponent.class)
     void onClientLoad();
 
     @ApiStatus.Experimental
-    @CheckEnv(Env.CLIENT)
+    @CheckEnvironment(EnvType.CLIENT)
     @AsmGeneratedCallback(ClientUnloadAwareComponent.class)
     void onClientUnload();
 

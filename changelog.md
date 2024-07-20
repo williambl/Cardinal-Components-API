@@ -3,6 +3,7 @@ Version 6.1.1
 ------------------------------------------------------
 **Fixes**
 - Fixed `C2SSelfMessagingComponent#sendC2SMessage` mistakenly adding the component ID to the custom data buffer
+- Removed dependency on `com.demonwav.mcdev:annotations` - this should remove some errors in dev environments
 
 ------------------------------------------------------
 Version 6.1.0

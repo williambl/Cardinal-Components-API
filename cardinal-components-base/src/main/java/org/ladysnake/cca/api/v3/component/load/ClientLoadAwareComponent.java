@@ -22,11 +22,11 @@
  */
 package org.ladysnake.cca.api.v3.component.load;
 
-import com.demonwav.mcdev.annotations.CheckEnv;
-import com.demonwav.mcdev.annotations.Env;
+import net.fabricmc.api.EnvType;
 import net.minecraft.util.Identifier;
 import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.ComponentRegistryV3;
+import org.ladysnake.cca.api.v3.util.CheckEnvironment;
 import org.ladysnake.cca.internal.base.asm.CalledByAsm;
 
 /**
@@ -48,7 +48,7 @@ public interface ClientLoadAwareComponent extends Component {
      * In <em>most</em> cases, this method will only be called once in an object's lifecycle,
      * and it <em>should</em> be called as many times as the corresponding unloading event if applicable.
      */
-    @CheckEnv(Env.CLIENT)
+    @CheckEnvironment(EnvType.CLIENT)
     @CalledByAsm
     void loadClientside();
 }

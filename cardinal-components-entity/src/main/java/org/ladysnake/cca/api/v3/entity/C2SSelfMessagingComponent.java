@@ -22,9 +22,8 @@
  */
 package org.ladysnake.cca.api.v3.entity;
 
-import com.demonwav.mcdev.annotations.CheckEnv;
-import com.demonwav.mcdev.annotations.Env;
 import com.mojang.datafixers.util.Unit;
+import net.fabricmc.api.EnvType;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
@@ -36,6 +35,7 @@ import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentProvider;
 import org.ladysnake.cca.api.v3.component.sync.C2SComponentPacketWriter;
+import org.ladysnake.cca.api.v3.util.CheckEnvironment;
 import org.ladysnake.cca.internal.base.ComponentUpdatePayload;
 import org.ladysnake.cca.internal.entity.CardinalComponentsEntity;
 
@@ -65,7 +65,7 @@ public interface C2SSelfMessagingComponent extends Component {
      * which is inefficient and may even produce incorrect results in some edge cases.
      * @see #sendC2SMessage(ComponentKey, C2SComponentPacketWriter)
      */
-    @CheckEnv(Env.CLIENT)
+    @CheckEnvironment(EnvType.CLIENT)
     default void sendC2SMessage(C2SComponentPacketWriter writer) {
         ComponentProvider provider = (ComponentProvider) Objects.requireNonNull(MinecraftClient.getInstance().player);
         ComponentKey<?> key = Objects.requireNonNull(provider.getComponentContainer().getKey(this));
@@ -78,7 +78,7 @@ public interface C2SSelfMessagingComponent extends Component {
      * @param key the key describing the component being sent an update
      * @param writer a {@link C2SComponentPacketWriter} writing the component's data to the packet
      */
-    @CheckEnv(Env.CLIENT)
+    @CheckEnvironment(EnvType.CLIENT)
     static void sendC2SMessage(ComponentKey<?> key, C2SComponentPacketWriter writer) {
         PacketSender sender = ClientPlayNetworking.getSender(); // checks that the player is in game
         RegistryByteBuf buf = new RegistryByteBuf(PacketByteBufs.create(), Objects.requireNonNull(MinecraftClient.getInstance().getNetworkHandler()).getRegistryManager());

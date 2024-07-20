@@ -65,7 +65,6 @@ allprojects {
         modLocalImplementation("org.ladysnake:elmendorf:${props["elmendorf_version"]}")
 
         compileOnly("com.google.code.findbugs:jsr305:3.0.2")
-        compileOnly("com.demonwav.mcdev:annotations:1.0")
         compileOnly("org.jetbrains:annotations:24.0.1")
     }
 

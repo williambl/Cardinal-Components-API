@@ -22,8 +22,7 @@
  */
 package org.ladysnake.cca.api.v3.component.sync;
 
-import com.demonwav.mcdev.annotations.CheckEnv;
-import com.demonwav.mcdev.annotations.Env;
+import net.fabricmc.api.EnvType;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.RegistryByteBuf;
@@ -33,6 +32,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Contract;
 import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
+import org.ladysnake.cca.api.v3.util.CheckEnvironment;
 
 /**
  * A {@link Component} implementing this interface will have its data automatically
@@ -95,7 +95,7 @@ public interface AutoSyncedComponent extends Component, ComponentPacketWriter, P
      * such that it uses a different data format must override this method.
      * @see #writeSyncPacket(RegistryByteBuf, ServerPlayerEntity)
      */
-    @CheckEnv(Env.CLIENT)
+    @CheckEnvironment(EnvType.CLIENT)
     default void applySyncPacket(RegistryByteBuf buf) {
         NbtCompound tag = buf.readNbt();
         if (tag != null) {
