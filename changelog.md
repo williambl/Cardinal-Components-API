@@ -3,6 +3,7 @@ Version 6.1.1
 ------------------------------------------------------
 **Fixes**
 - Fixed `C2SSelfMessagingComponent#sendC2SMessage` mistakenly adding the component ID to the custom data buffer
+  - Check out the new documentation for this API here: https://ladysnake.org/wiki/cardinal-components-api/modules/entity#client-to-server-networking
 - Removed dependency on `com.demonwav.mcdev:annotations` - this should remove some errors in dev environments
 
 ------------------------------------------------------
