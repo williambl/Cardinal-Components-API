@@ -1,4 +1,10 @@
 ------------------------------------------------------
+Version 6.1.1
+------------------------------------------------------
+**Fixes**
+- Fixed `C2SSelfMessagingComponent#sendC2SMessage` mistakenly adding the component ID to the custom data buffer
+
+------------------------------------------------------
 Version 6.1.0
 ------------------------------------------------------
 Updated to 1.21
