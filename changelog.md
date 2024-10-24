@@ -1,4 +1,10 @@
 ------------------------------------------------------
+Version 6.1.2
+------------------------------------------------------
+**Fixes**
+- Fixed clientside chunk Load/Unload triggering respectively `onServerLoad` and `onServerUnload` instead of `onClientLoad`/`onClientUnload`
+
+------------------------------------------------------
 Version 6.1.1
 ------------------------------------------------------
 **Fixes**
