@@ -41,8 +41,8 @@ public class CcaChunkClient {
             ));
         }
         if (FabricLoader.getInstance().isModLoaded("fabric-lifecycle-events-v1")) {
-            ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> ((ComponentProvider) chunk).getComponentContainer().onServerLoad());
-            ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> ((ComponentProvider) chunk).getComponentContainer().onServerUnload());
+            ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> ((ComponentProvider) chunk).getComponentContainer().onClientLoad());
+            ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> ((ComponentProvider) chunk).getComponentContainer().onClientUnload());
         }
     }
 }
