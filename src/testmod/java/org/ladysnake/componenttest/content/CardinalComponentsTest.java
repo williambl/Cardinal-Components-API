@@ -25,9 +25,9 @@ package org.ladysnake.componenttest.content;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
-import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
+import net.minecraft.block.AbstractBlock;
+import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
@@ -71,15 +71,20 @@ public class CardinalComponentsTest {
 
     public static final Logger LOGGER = LogManager.getLogger("Component Test");
 
-    public static final Identifier VITA_STICK_ID = id("vita_stick");
+    public static final RegistryKey<Item> VITA_STICK_ID = RegistryKey.of(RegistryKeys.ITEM, id("vita_stick"));
     // inline self component callback registration
     public static final VitalityStickItem VITALITY_STICK = Registry.register(Registries.ITEM, VITA_STICK_ID,
-            new VitalityStickItem(new Item.Settings().maxDamage(50)));
+            new VitalityStickItem(new Item.Settings().maxDamage(50).registryKey(VITA_STICK_ID)));
 
-    public static final VitalityCondenser VITALITY_CONDENSER = new VitalityCondenser(FabricBlockSettings.copyOf(Blocks.STONE).dropsNothing().luminance(s -> 5).ticksRandomly());
+    public static final RegistryKey<Block> VITALITY_CONDENSER_ID = RegistryKey.of(RegistryKeys.BLOCK, id("vita_condenser"));
+    public static final VitalityCondenser VITALITY_CONDENSER = Registry.register(Registries.BLOCK, VITALITY_CONDENSER_ID,
+        new VitalityCondenser(AbstractBlock.Settings.copy(Blocks.STONE).registryKey(VITALITY_CONDENSER_ID).dropsNothing().luminance(s -> 5).ticksRandomly()));
 
-    public static final EntityType<VitalityZombieEntity> VITALITY_ZOMBIE = Registry.register(Registries.ENTITY_TYPE, "componenttest:vita_zombie",
-            FabricEntityTypeBuilder.create(SpawnGroup.MONSTER, VitalityZombieEntity::new).dimensions(EntityType.ZOMBIE.getDimensions()).build());
+    public static final RegistryKey<EntityType<?>> VITALITY_ZOMBIE_ID = RegistryKey.of(RegistryKeys.ENTITY_TYPE, id("vita_zombie"));
+    public static final EntityType<VitalityZombieEntity> VITALITY_ZOMBIE = Registry.register(Registries.ENTITY_TYPE, VITALITY_ZOMBIE_ID,
+            EntityType.Builder.create(VitalityZombieEntity::new, SpawnGroup.MONSTER)
+                .dimensions(EntityType.ZOMBIE.getDimensions().width(), EntityType.ZOMBIE.getDimensions().height())
+                .build(VITALITY_ZOMBIE_ID));
 
     public static Identifier id(String path) {
         return Identifier.of("componenttest", path);
@@ -92,7 +97,6 @@ public class CardinalComponentsTest {
         Registry.register(Registries.DATA_COMPONENT_TYPE, id("vita"), ItemVita.Data.COMPONENT_TYPE);
         Registry.register(Registries.DATA_COMPONENT_TYPE, id("alt_vita"), ItemVita.Data.ALT_COMPONENT_TYPE);
 
-        Registry.register(Registries.BLOCK, "componenttest:vita_condenser", VITALITY_CONDENSER);
         CommandRegistrationCallback.EVENT.register((dispatcher, reg, dedicated) -> VitaCommand.register(dispatcher));
 
         FabricDefaultAttributeRegistry.register(VITALITY_ZOMBIE, ZombieEntity.createZombieAttributes());

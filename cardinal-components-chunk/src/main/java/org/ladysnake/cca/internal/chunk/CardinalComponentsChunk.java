@@ -30,14 +30,13 @@ import org.ladysnake.cca.api.v3.chunk.ChunkSyncCallback;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentProvider;
 import org.ladysnake.cca.internal.base.ComponentUpdatePayload;
-import org.ladysnake.cca.internal.base.MorePacketCodecs;
 
 public final class CardinalComponentsChunk {
     public static final CustomPayload.Id<ComponentUpdatePayload<ChunkPos>> PACKET_ID = ComponentUpdatePayload.id("chunk_sync");
 
     public static void init() {
         if (FabricLoader.getInstance().isModLoaded("fabric-networking-api-v1")) {
-            ComponentUpdatePayload.register(PACKET_ID, MorePacketCodecs.CHUNKPOS);
+            ComponentUpdatePayload.register(PACKET_ID, ChunkPos.PACKET_CODEC);
             ChunkSyncCallback.EVENT.register((player, tracked) -> {
                 for (ComponentKey<?> key : tracked.asComponentProvider().getComponentContainer().keys()) {
                     key.syncWith(player, (ComponentProvider) tracked);

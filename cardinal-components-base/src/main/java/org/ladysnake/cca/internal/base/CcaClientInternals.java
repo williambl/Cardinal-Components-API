@@ -42,7 +42,9 @@ public final class CcaClientInternals {
                     }
                 });
             } catch (UnknownComponentException e) {
-                ctx.player().networkHandler.onDisconnected(new DisconnectionInfo(Text.literal(e.getMessage() + "\n(you are probably missing a mod installed on the server)" + ComponentsInternals.getClientOptionalModAdvice())));
+                ctx.player().networkHandler.onDisconnected(new DisconnectionInfo(Text.literal(
+                    e.getMessage() + "\n(you are probably missing a mod installed on the server)" + ComponentsInternals.getClientOptionalModAdvice())
+                ));
             } finally {
                 payload.buf().release();
             }

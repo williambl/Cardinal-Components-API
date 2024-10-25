@@ -35,7 +35,7 @@ import org.ladysnake.cca.internal.base.ComponentRegistrationInitializer;
  */
 public interface ItemComponentInitializer extends ComponentRegistrationInitializer {
     /**
-     * Called to register component migrations from CCA to {@link net.minecraft.component.DataComponentType}.
+     * Called to register component migrations from CCA to {@link net.minecraft.component.ComponentType}.
      *
      * @param registry an {@link ItemComponentMigrationRegistry} for component migrations
      * @since 7.0.0

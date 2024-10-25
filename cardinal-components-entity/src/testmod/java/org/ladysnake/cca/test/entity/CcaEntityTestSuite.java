@@ -26,6 +26,7 @@ import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
 import net.minecraft.entity.Bucketable;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.conversion.EntityConversionContext;
 import net.minecraft.entity.mob.ShulkerEntity;
 import net.minecraft.entity.passive.CamelEntity;
 import net.minecraft.entity.passive.CatEntity;
@@ -89,9 +90,10 @@ public class CcaEntityTestSuite implements FabricGameTest {
     @GameTest(templateName = EMPTY_STRUCTURE)
     public void respawnHappensOnConversion(TestContext ctx) {
         CamelEntity camel = ctx.spawnEntity(EntityType.CAMEL, 0, 0, 0);
-        CowEntity cow = camel.convertTo(EntityType.COW, true);
+        CowEntity cow = camel.convertTo(EntityType.COW, EntityConversionContext.create(camel, true, true), e -> {});
+        assert cow != null;
         GameTestUtil.assertTrue("Component data should transfer according to RespawnCopyStrategy", Vita.get(cow).getVitality() == CcaEntityTestMod.CAMEL_BASE_VITA);
-        CatEntity cat = cow.convertTo(EntityType.CAT, true);
+        CatEntity cat = cow.convertTo(EntityType.CAT, EntityConversionContext.create(camel, true, true), e -> {});
         GameTestUtil.assertTrue("Component data should not transfer by default", Vita.get(cat).getVitality() < CcaEntityTestMod.NATURAL_VITA_CEILING);
         ctx.complete();
     }

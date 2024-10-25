@@ -31,6 +31,8 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.conversion.EntityConversionContext;
+import net.minecraft.entity.conversion.EntityConversionType;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.network.packet.s2c.common.CustomPayloadS2CPacket;
@@ -106,18 +108,18 @@ public final class CardinalComponentsEntity {
         StaticEntityComponentPlugin.INSTANCE.ensureInitialized();
     }
 
-    private static void copyData(LivingEntity original, LivingEntity clone, boolean keepInventory) {
+    private static void copyData(LivingEntity original, LivingEntity clone, EntityConversionContext context) {
         Set<ComponentKey<?>> keys = ((ComponentProvider) original).getComponentContainer().keys();
 
         for (ComponentKey<?> key : keys) {
             if (key.isProvidedBy(clone)) {
-                copyData(original, clone, original.getRegistryManager(), false, keepInventory, true, key);
+                copyData(original, clone, original.getRegistryManager(), false, context.keepEquipment(), context.type() == EntityConversionType.SINGLE, key);
             }
         }
     }
 
     private static void copyData(ServerPlayerEntity original, ServerPlayerEntity clone, boolean lossless) {
-        boolean keepInventory = original.getWorld().getGameRules().getBoolean(GameRules.KEEP_INVENTORY) || clone.isSpectator();
+        boolean keepInventory = original.getServerWorld().getGameRules().getBoolean(GameRules.KEEP_INVENTORY) || clone.isSpectator();
         Set<ComponentKey<?>> keys = ((ComponentProvider) original).getComponentContainer().keys();
 
         for (ComponentKey<?> key : keys) {

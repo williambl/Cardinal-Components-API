@@ -31,6 +31,8 @@ import net.minecraft.entity.passive.CamelEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
 import org.ladysnake.cca.api.v3.entity.EntityComponentFactoryRegistry;
 import org.ladysnake.cca.api.v3.entity.EntityComponentInitializer;
@@ -40,8 +42,8 @@ import org.ladysnake.cca.test.base.LoadAwareTestComponent;
 import org.ladysnake.cca.test.base.Vita;
 
 public class CcaEntityTestMod implements ModInitializer, EntityComponentInitializer {
-
-    public static final EntityType<TestEntity> TEST_ENTITY = EntityType.Builder.create(TestEntity::new, SpawnGroup.MISC).build("cca-entity-test");
+    public static final RegistryKey<EntityType<?>> TEST_ENTITY_ID = RegistryKey.of(RegistryKeys.ENTITY_TYPE, Identifier.of("cca-entity-test", "test"));
+    public static final EntityType<TestEntity> TEST_ENTITY = EntityType.Builder.create(TestEntity::new, SpawnGroup.MISC).build(TEST_ENTITY_ID);
     public static final int NATURAL_VITA_CEILING = 10;
     public static final int CAMEL_BASE_VITA = 50;
 
@@ -59,6 +61,6 @@ public class CcaEntityTestMod implements ModInitializer, EntityComponentInitiali
 
     @Override
     public void onInitialize() {
-        Registry.register(Registries.ENTITY_TYPE, Identifier.of("cca-entity-test", "test"), TEST_ENTITY);
+        Registry.register(Registries.ENTITY_TYPE, TEST_ENTITY_ID, TEST_ENTITY);
     }
 }

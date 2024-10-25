@@ -7,8 +7,8 @@
     "common.MixinChunk",
     "common.MixinChunkDataSender",
     "common.MixinChunkHolder",
-    "common.MixinChunkSerializer",
     "common.MixinEmptyChunk",
+    "common.MixinSerializedChunk",
     "common.MixinServerWorld",
     "common.MixinWorldChunk",
     "common.MixinWrapperProtoChunk"

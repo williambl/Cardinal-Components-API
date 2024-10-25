@@ -24,37 +24,68 @@ package org.ladysnake.cca.mixin.chunk.common;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
+import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.ChunkSerializer;
+import net.minecraft.world.HeightLimitView;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ProtoChunk;
+import net.minecraft.world.chunk.SerializedChunk;
 import net.minecraft.world.chunk.WrapperProtoChunk;
 import net.minecraft.world.poi.PointOfInterestStorage;
 import net.minecraft.world.storage.StorageKey;
+import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.internal.base.AbstractComponentContainer;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(ChunkSerializer.class)
-public abstract class MixinChunkSerializer {
-    @Inject(method = "deserialize", at = @At("RETURN"))
-    private static void deserialize(ServerWorld world, PointOfInterestStorage poiStorage, StorageKey key, ChunkPos chunkPos, NbtCompound tag, CallbackInfoReturnable<ProtoChunk> cir) {
+@Mixin(SerializedChunk.class)
+public abstract class MixinSerializedChunk {
+    @Unique
+    private @Nullable NbtCompound cca$serializedComponents;
+
+    @Inject(method = "fromNbt", at = @At("RETURN"))
+    private static void fromNbt(HeightLimitView world, DynamicRegistryManager registryManager, NbtCompound nbt, CallbackInfoReturnable<SerializedChunk> cir) {
+        MixinSerializedChunk ret = (MixinSerializedChunk) (Object) cir.getReturnValue();
+        if (ret != null) {
+            ret.cca$serializedComponents = new NbtCompound();
+            ret.cca$serializedComponents.put(AbstractComponentContainer.NBT_KEY, nbt.get(AbstractComponentContainer.NBT_KEY));
+        }
+    }
+
+    @Inject(method = "convert", at = @At("RETURN"))
+    private void convert(ServerWorld world, PointOfInterestStorage poiStorage, StorageKey key, ChunkPos expectedPos, CallbackInfoReturnable<ProtoChunk> cir) {
+        NbtCompound tag = cca$serializedComponents;
+        if (tag == null) return;
         ProtoChunk ret = cir.getReturnValue();
         Chunk chunk = ret instanceof WrapperProtoChunk ? ((WrapperProtoChunk) ret).getWrappedChunk() : ret;
         chunk.asComponentProvider().getComponentContainer().fromTag(tag, world.getRegistryManager());
         // If components have been removed, we need to make the chunk save again
         if (tag.contains(AbstractComponentContainer.NBT_KEY, NbtElement.COMPOUND_TYPE)) {
             int remainingComponentCount = tag.getCompound(AbstractComponentContainer.NBT_KEY).getSize();
-            chunk.setNeedsSaving(remainingComponentCount > 0);
+            if (remainingComponentCount > 0) {
+                chunk.markNeedsSaving();
+            }
+        }
+    }
+
+    @Inject(method = "fromChunk", at = @At("RETURN"))
+    private static void fromChunk(ServerWorld world, Chunk chunk, CallbackInfoReturnable<SerializedChunk> cir) {
+        MixinSerializedChunk ret = (MixinSerializedChunk) (Object) cir.getReturnValue();
+        if (ret != null) {
+            ret.cca$serializedComponents = new NbtCompound();
+            chunk.asComponentProvider().getComponentContainer().toTag(ret.cca$serializedComponents, world.getRegistryManager());
         }
     }
 
     @Inject(method = "serialize", at = @At("RETURN"))
-    private static void serialize(ServerWorld world, Chunk chunk, CallbackInfoReturnable<NbtCompound> cir) {
-        NbtCompound ret = cir.getReturnValue();
-        chunk.asComponentProvider().getComponentContainer().toTag(ret, world.getRegistryManager());
+    private void serialize(CallbackInfoReturnable<NbtCompound> cir) {
+        if (cca$serializedComponents != null) {
+            NbtCompound ret = cir.getReturnValue();
+            ret.put(AbstractComponentContainer.NBT_KEY, cca$serializedComponents.get(AbstractComponentContainer.NBT_KEY));
+        }
     }
 }

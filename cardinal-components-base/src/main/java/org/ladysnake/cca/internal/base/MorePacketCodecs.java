@@ -25,10 +25,8 @@ package org.ladysnake.cca.internal.base;
 import com.mojang.datafixers.util.Unit;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.util.math.ChunkPos;
 
 public final class MorePacketCodecs {
     public static final PacketCodec<ByteBuf, Unit> EMPTY = PacketCodec.unit(Unit.INSTANCE);
@@ -44,16 +42,5 @@ public final class MorePacketCodecs {
             buf.readBytes(copy, readableBytes);
             return new RegistryByteBuf(copy, buf.getRegistryManager());
         }
-    );
-
-    /**
-     * A codec for a {@link ChunkPos}.
-     *
-     * @see PacketByteBuf#readChunkPos()
-     * @see PacketByteBuf#writeChunkPos(ChunkPos)
-     */
-    public static final PacketCodec<PacketByteBuf, ChunkPos> CHUNKPOS = PacketCodec.ofStatic(
-        PacketByteBuf::writeChunkPos,
-        PacketByteBuf::readChunkPos
     );
 }

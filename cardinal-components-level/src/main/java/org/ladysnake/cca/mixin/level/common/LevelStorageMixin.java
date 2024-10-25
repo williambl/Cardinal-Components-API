@@ -27,7 +27,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;
-import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.world.gen.GeneratorOptions;
 import net.minecraft.world.level.LevelInfo;
 import net.minecraft.world.level.LevelProperties;
@@ -39,7 +39,7 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(LevelStorage.class)
 public class LevelStorageMixin {
     @WrapOperation(method = "parseSaveProperties", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/LevelProperties;readProperties(Lcom/mojang/serialization/Dynamic;Lnet/minecraft/world/level/LevelInfo;Lnet/minecraft/world/level/LevelProperties$SpecialProperty;Lnet/minecraft/world/gen/GeneratorOptions;Lcom/mojang/serialization/Lifecycle;)Lnet/minecraft/world/level/LevelProperties;"))
-    private static LevelProperties readComponents(Dynamic<?> dynamic, LevelInfo info, LevelProperties.SpecialProperty specialProperty, GeneratorOptions generatorOptions, Lifecycle lifecycle, Operation<LevelProperties> original, @Local(argsOnly = true) DynamicRegistryManager.Immutable registryManager) {
+    private static LevelProperties readComponents(Dynamic<?> dynamic, LevelInfo info, LevelProperties.SpecialProperty specialProperty, GeneratorOptions generatorOptions, Lifecycle lifecycle, Operation<LevelProperties> original, @Local(argsOnly = true) RegistryWrapper.WrapperLookup registryManager) {
         LevelProperties props = original.call(dynamic, info, specialProperty, generatorOptions, lifecycle);
         ((ComponentProvider) props).getComponentContainer().fromDynamic(dynamic, registryManager);
         return props;

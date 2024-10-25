@@ -24,6 +24,7 @@ package org.ladysnake.cca.api.v3.component;
 
 import io.netty.buffer.Unpooled;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.PacketCallbacks;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.packet.CustomPayload;
@@ -208,7 +209,11 @@ public abstract class ComponentKey<C extends Component> {
                     ServerPlayNetworking.getSender(player).sendPacket(payload, PacketCallbacks.always(buf::release));
                 } else {
                     if (predicate.isRequiredOnClient()) {
-                        player.networkHandler.disconnect(Text.literal("This server requires Cardinal Components API (unhandled packet: " + payload.getId().id() + ")" + ComponentsInternals.getClientOptionalModAdvice()));
+                        String specificMod = FabricLoader.getInstance().getModContainer(this.id.getNamespace()).map(c -> c.getMetadata().getName() + " and ").orElse("");
+                        player.networkHandler.disconnect(Text.literal(
+                            "This server requires " + specificMod + "Cardinal Components API " +
+                                "(unhandled packet: " + payload.getId().id() + ")" +
+                                ComponentsInternals.getClientOptionalModAdvice()));
                     }
                     buf.release();
                 }

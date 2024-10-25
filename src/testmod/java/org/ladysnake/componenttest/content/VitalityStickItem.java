@@ -37,7 +37,6 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.ladysnake.cca.test.base.Vita;
@@ -54,7 +53,7 @@ public class VitalityStickItem extends Item {
     }
 
     @Override
-    public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
+    public ActionResult use(World world, PlayerEntity player, Hand hand) {
         ItemStack stack = player.getStackInHand(hand);
         Vita vita = ItemVita.maybeGet(stack).orElseThrow();
         if (!world.isClient) {
@@ -71,7 +70,7 @@ public class VitalityStickItem extends Item {
                 vita.transferTo(Vita.get(player), vita.getVitality());
             }
         }
-        return TypedActionResult.pass(stack);
+        return ActionResult.PASS;
     }
 
     @Override
