@@ -22,7 +22,10 @@
  */
 package org.ladysnake.cca.internal.base.asm;
 
+import com.mojang.serialization.MapCodec;
 import net.minecraft.entity.Entity;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.util.Identifier;
 import org.ladysnake.cca.api.v3.component.ComponentFactory;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
@@ -30,6 +33,7 @@ import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponent;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentFactory;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentKey;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentWrapper;
+import org.ladysnake.cca.internal.base.ImmutableInternals;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
@@ -44,7 +48,7 @@ public final class CcaImmutableBootstrap {
     public static <C extends ImmutableComponent, O, W extends ImmutableComponentWrapper<C, O>> Class<W> makeWrapper(
         ImmutableComponentKey<C> key,
         Class<O> targetClass
-    ) throws IOException {
+    ) throws IOException, NoSuchMethodException, IllegalAccessException {
         ClassNode writer = new ClassNode(CcaAsmHelper.ASM_VERSION);
         writer.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, CcaAsmHelper.STATIC_IMMUTABLE_COMPONENT_WRAPPER + "$" + CcaAsmHelper.getJavaIdentifierName(key.getId()), null, CcaAsmHelper.IMMUTABLE_COMPONENT_WRAPPER, null);
 
@@ -57,6 +61,42 @@ public final class CcaImmutableBootstrap {
         init.visitMethodInsn(Opcodes.INVOKESPECIAL, CcaAsmHelper.IMMUTABLE_COMPONENT_WRAPPER, "<init>", CcaAsmHelper.IMMUTABLE_COMPONENT_WRAPPER_CTOR_DESC, false);
         init.visitInsn(Opcodes.RETURN);
         init.visitEnd();
+
+        if (key.getMapCodec() != null) {
+            MethodVisitor readFromNbt = writer.visitMethod(Opcodes.ACC_PUBLIC, "readFromNbt", CcaAsmHelper.COMPONENT_READ_FROM_NBT_DESC, null, null);
+            readFromNbt.visitVarInsn(Opcodes.ALOAD, 0); // this
+            readFromNbt.visitVarInsn(Opcodes.ALOAD, 1); // nbt
+            readFromNbt.visitVarInsn(Opcodes.ALOAD, 2); // registries
+            readFromNbt.visitMethodInsn(Opcodes.INVOKESTATIC, CcaAsmHelper.IMMUTABLE_INTERNALS, "wrapperRead", CcaAsmHelper.IMMUTABLE_WRAPPER_READ_DESC, false);
+            readFromNbt.visitInsn(Opcodes.RETURN);
+            readFromNbt.visitEnd();
+
+            MethodVisitor writeToNbt = writer.visitMethod(Opcodes.ACC_PUBLIC, "writeToNbt", CcaAsmHelper.COMPONENT_WRITE_TO_NBT_DESC, null, null);
+            writeToNbt.visitVarInsn(Opcodes.ALOAD, 0); // this
+            writeToNbt.visitVarInsn(Opcodes.ALOAD, 1); // nbt
+            writeToNbt.visitVarInsn(Opcodes.ALOAD, 2); // registries
+            writeToNbt.visitMethodInsn(Opcodes.INVOKESTATIC, CcaAsmHelper.IMMUTABLE_INTERNALS, "wrapperWrite", CcaAsmHelper.IMMUTABLE_WRAPPER_WRITE_DESC, false);
+            writeToNbt.visitInsn(Opcodes.RETURN);
+            writeToNbt.visitEnd();
+        }
+
+        if (key.getPacketCodec() != null) {
+            writer.interfaces.add(CcaAsmHelper.AUTO_SYNCED_COMPONENT);
+
+            MethodVisitor applySyncPacket = writer.visitMethod(Opcodes.ACC_PUBLIC, "applySyncPacket", CcaAsmHelper.AUTO_SYNCED_COMPONENT_APPLY_SYNC_PACKET_DESC, null, null);
+            applySyncPacket.visitVarInsn(Opcodes.ALOAD, 0); // this
+            applySyncPacket.visitVarInsn(Opcodes.ALOAD, 1); // buf
+            applySyncPacket.visitMethodInsn(Opcodes.INVOKESTATIC, CcaAsmHelper.IMMUTABLE_INTERNALS, "wrapperApplySync", CcaAsmHelper.IMMUTABLE_WRAPPER_APPLY_SYNC_DESC, false);
+            applySyncPacket.visitInsn(Opcodes.RETURN);
+            applySyncPacket.visitEnd();
+
+            MethodVisitor writeSyncPacket = writer.visitMethod(Opcodes.ACC_PUBLIC, "writeSyncPacket", CcaAsmHelper.AUTO_SYNCED_COMPONENT_WRITE_SYNC_PACKET_DESC, null, null);
+            writeSyncPacket.visitVarInsn(Opcodes.ALOAD, 0); // this
+            writeSyncPacket.visitVarInsn(Opcodes.ALOAD, 1); // buf
+            writeSyncPacket.visitMethodInsn(Opcodes.INVOKESTATIC, CcaAsmHelper.IMMUTABLE_INTERNALS, "wrapperWriteSync", CcaAsmHelper.IMMUTABLE_WRAPPER_WRITE_SYNC_DESC, false);
+            writeSyncPacket.visitInsn(Opcodes.RETURN);
+            writeSyncPacket.visitEnd();
+        }
 
         writer.visitEnd();
         return (Class<W>) CcaAsmHelper.generateClass(writer, false, null);

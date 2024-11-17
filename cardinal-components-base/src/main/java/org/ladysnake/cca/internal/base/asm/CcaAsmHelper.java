@@ -25,6 +25,10 @@ package org.ladysnake.cca.internal.base.asm;
 import it.unimi.dsi.fastutil.objects.ReferenceArraySet;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.RegistryByteBuf;
+import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -35,7 +39,9 @@ import org.ladysnake.cca.api.v3.component.ComponentProvider;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponent;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentKey;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentWrapper;
+import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 import org.ladysnake.cca.internal.base.AbstractComponentContainer;
+import org.ladysnake.cca.internal.base.ImmutableInternals;
 import org.ladysnake.cca.internal.base.QualifiedComponentFactory;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -77,6 +83,8 @@ public final class CcaAsmHelper {
     public static final String COMPONENT_TYPE = Type.getInternalName(ComponentKey.class);
     public static final String IMMUTABLE_COMPONENT_TYPE = Type.getInternalName(ImmutableComponentKey.class);
     public static final String IMMUTABLE_COMPONENT_WRAPPER = Type.getInternalName(ImmutableComponentWrapper.class);
+    public static final String IMMUTABLE_INTERNALS = Type.getInternalName(ImmutableInternals.class);
+    public static final String AUTO_SYNCED_COMPONENT = Type.getInternalName(AutoSyncedComponent.class);
     public static final String DYNAMIC_COMPONENT_CONTAINER_IMPL = Type.getInternalName(AbstractComponentContainer.class);
     public static final String IDENTIFIER = FabricLoader.getInstance().getMappingResolver().mapClassName("intermediary", "net.minecraft.class_2960").replace('.', '/');
     public static final String EVENT = Type.getInternalName(Event.class);
@@ -89,6 +97,14 @@ public final class CcaAsmHelper {
     public static final String STATIC_IMMUTABLE_COMPONENT_WRAPPER = createClassName("GeneratedImmutableComponentWrapper");
     public static final String ABSTRACT_COMPONENT_CONTAINER_CTOR_DESC;
     public static final String IMMUTABLE_COMPONENT_WRAPPER_CTOR_DESC;
+    public static final String COMPONENT_READ_FROM_NBT_DESC;
+    public static final String COMPONENT_WRITE_TO_NBT_DESC;
+    public static final String AUTO_SYNCED_COMPONENT_APPLY_SYNC_PACKET_DESC;
+    public static final String AUTO_SYNCED_COMPONENT_WRITE_SYNC_PACKET_DESC;
+    public static final String IMMUTABLE_WRAPPER_READ_DESC;
+    public static final String IMMUTABLE_WRAPPER_WRITE_DESC;
+    public static final String IMMUTABLE_WRAPPER_APPLY_SYNC_DESC;
+    public static final String IMMUTABLE_WRAPPER_WRITE_SYNC_DESC;
 
     private static final List<AsmGeneratedCallbackInfo> asmGeneratedCallbacks = findAsmComponentCallbacks();
 
@@ -98,6 +114,14 @@ public final class CcaAsmHelper {
         try {
             ABSTRACT_COMPONENT_CONTAINER_CTOR_DESC = Type.getConstructorDescriptor(AbstractComponentContainer.class.getConstructor());
             IMMUTABLE_COMPONENT_WRAPPER_CTOR_DESC = Type.getConstructorDescriptor(ImmutableComponentWrapper.class.getDeclaredConstructor(ImmutableComponentKey.class, Object.class, ImmutableComponent.class));
+            COMPONENT_READ_FROM_NBT_DESC = Type.getMethodDescriptor(Component.class.getMethod("readFromNbt", NbtCompound.class, RegistryWrapper.WrapperLookup.class));
+            COMPONENT_WRITE_TO_NBT_DESC = Type.getMethodDescriptor(Component.class.getMethod("writeToNbt", NbtCompound.class, RegistryWrapper.WrapperLookup.class));
+            AUTO_SYNCED_COMPONENT_APPLY_SYNC_PACKET_DESC = Type.getMethodDescriptor(AutoSyncedComponent.class.getMethod("applySyncPacket", RegistryByteBuf.class));
+            AUTO_SYNCED_COMPONENT_WRITE_SYNC_PACKET_DESC = Type.getMethodDescriptor(AutoSyncedComponent.class.getMethod("writeSyncPacket", RegistryByteBuf.class, ServerPlayerEntity.class));
+            IMMUTABLE_WRAPPER_READ_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperRead", ImmutableComponentWrapper.class, NbtCompound.class, RegistryWrapper.WrapperLookup.class));
+            IMMUTABLE_WRAPPER_WRITE_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperWrite", ImmutableComponentWrapper.class, NbtCompound.class, RegistryWrapper.WrapperLookup.class));
+            IMMUTABLE_WRAPPER_APPLY_SYNC_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperApplySync", ImmutableComponentWrapper.class, RegistryByteBuf.class));
+            IMMUTABLE_WRAPPER_WRITE_SYNC_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperWriteSync", ImmutableComponentWrapper.class, RegistryByteBuf.class));
         } catch (NoSuchMethodException e) {
             throw new IllegalStateException("Failed to find one or more method descriptors", e);
         }

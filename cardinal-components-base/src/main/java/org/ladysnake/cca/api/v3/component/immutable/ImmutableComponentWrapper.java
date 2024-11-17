@@ -35,4 +35,20 @@ public abstract class ImmutableComponentWrapper<C extends ImmutableComponent, O>
     public void copyFrom(ImmutableComponentWrapper<C, O> other, RegistryWrapper.WrapperLookup registryLookup) {
         this.data = other.data;
     }
+
+    public ImmutableComponentKey<C> getKey() {
+        return key;
+    }
+
+    public O getOwner() {
+        return owner;
+    }
+
+    public C getData() {
+        return this.data;
+    }
+
+    public void setData(C data) {
+        this.data = data;
+    }
 }
