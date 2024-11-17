@@ -28,6 +28,10 @@ import org.jetbrains.annotations.ApiStatus;
 import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.ComponentFactory;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponent;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentFactory;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentKey;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentWrapper;
 
 import java.util.function.Predicate;
 
@@ -98,6 +102,8 @@ public interface EntityComponentFactoryRegistry {
      */
     <C extends Component, P extends C> void registerForPlayers(ComponentKey<C> key, ComponentFactory<PlayerEntity, P> factory, RespawnCopyStrategy<? super P> respawnStrategy);
 
+    <C extends ImmutableComponent, E extends Entity> ImmutableRegistration<C, E> beginImmutableRegistration(Class<E> target, ImmutableComponentKey<C> key);
+
     interface Registration<C extends Component, E extends Entity> {
         /**
          * Registers a {@link ComponentFactory} for all instances of classes that pass the {@code test}.
@@ -150,5 +156,13 @@ public interface EntityComponentFactoryRegistry {
          * @param factory a factory creating instances of {@code C} that will be attached to instances of {@code E}
          */
         void end(ComponentFactory<E, C> factory);
+    }
+
+
+    interface ImmutableRegistration<C extends ImmutableComponent, E extends Entity> {
+        ImmutableRegistration<C, E> filter(Predicate<Class<? extends E>> test);
+        ImmutableRegistration<C, E> after(ComponentKey<?> dependency);
+        ImmutableRegistration<C, E> respawnStrategy(RespawnCopyStrategy<? super ImmutableComponentWrapper<C, E>> strategy);
+        void end(ImmutableComponentFactory<E, C> factory);
     }
 }

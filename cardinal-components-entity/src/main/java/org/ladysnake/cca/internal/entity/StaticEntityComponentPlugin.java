@@ -28,15 +28,21 @@ import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.ComponentContainer;
 import org.ladysnake.cca.api.v3.component.ComponentFactory;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponent;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentFactory;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentKey;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentWrapper;
 import org.ladysnake.cca.api.v3.entity.EntityComponentFactoryRegistry;
 import org.ladysnake.cca.api.v3.entity.EntityComponentInitializer;
 import org.ladysnake.cca.api.v3.entity.RespawnableComponent;
 import org.ladysnake.cca.api.v3.entity.RespawnCopyStrategy;
 import org.ladysnake.cca.internal.base.LazyDispatcher;
 import org.ladysnake.cca.internal.base.QualifiedComponentFactory;
+import org.ladysnake.cca.internal.base.asm.CcaImmutableBootstrap;
 import org.ladysnake.cca.internal.base.asm.StaticComponentLoadingException;
 import org.ladysnake.cca.internal.base.asm.StaticComponentPluginBase;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -122,6 +128,11 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
     @Override
     public <C extends Component, E extends Entity> Registration<C, E> beginRegistration(Class<E> target, ComponentKey<C> key) {
         return new RegistrationImpl<>(target, key);
+    }
+
+    @Override
+    public <C extends ImmutableComponent, E extends Entity> ImmutableRegistration<C, E> beginImmutableRegistration(Class<E> target, ImmutableComponentKey<C> key) {
+        return new ImmutableRegistrationImpl<>(target, key);
     }
 
     @Override
@@ -225,6 +236,67 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
                         this.dependencies
                     )
                 ));
+            }
+        }
+    }
+
+    private final class ImmutableRegistrationImpl<C extends ImmutableComponent, E extends Entity> implements ImmutableRegistration<C, E> {
+        private final Class<E> target;
+        private final ImmutableComponentKey<C> key;
+        private final Set<ComponentKey<?>> dependencies;
+        private Predicate<Class<? extends E>> test;
+
+        ImmutableRegistrationImpl(Class<E> target, ImmutableComponentKey<C> key) {
+            this.target = target;
+            this.dependencies = new LinkedHashSet<>();
+            this.test = null;
+            this.key = key;
+        }
+
+        @Override
+        public ImmutableRegistration<C, E> filter(Predicate<Class<? extends E>> test) {
+            this.test = this.test == null ? test : this.test.and(test);
+            return this;
+        }
+
+        @Override
+        public ImmutableRegistration<C, E> after(ComponentKey<?> dependency) {
+            this.dependencies.add(dependency);
+            return this;
+        }
+
+
+        @Override
+        public ImmutableRegistration<C, E> respawnStrategy(RespawnCopyStrategy<? super ImmutableComponentWrapper<C, E>> strategy) {
+            CardinalEntityInternals.registerRespawnCopyStrat(this.key, this.target, strategy);
+            return this;
+        }
+
+        @Override
+        public void end(ImmutableComponentFactory<E, C> factory) {
+            try {
+                StaticEntityComponentPlugin.this.checkLoading(Registration.class, "end");
+                Class<? extends ImmutableComponentWrapper<C, E>> componentClass = CcaImmutableBootstrap.makeWrapper(this.key, this.target);
+                ComponentFactory<E, ? extends ImmutableComponentWrapper<C, E>> componentFactory = CcaImmutableBootstrap.makeFactory(this.key, this.target, componentClass, factory);
+                if (this.test == null) {
+                    StaticEntityComponentPlugin.this.register0(
+                        this.target,
+                        this.key,
+                        new QualifiedComponentFactory<>(componentFactory, componentClass, this.dependencies)
+                    );
+                } else {
+                    StaticEntityComponentPlugin.this.dynamicFactories.add(new PredicatedComponentFactory<>(
+                        c -> this.target.isAssignableFrom(c) && this.test.test(c.asSubclass(this.target)),
+                        this.key,
+                        new QualifiedComponentFactory<>(
+                            entity -> componentFactory.createComponent(this.target.cast(entity)),
+                            componentClass,
+                            this.dependencies
+                        )
+                    ));
+                }
+            } catch (IOException | NoSuchMethodException | IllegalAccessException e) {
+                throw new RuntimeException(e);
             }
         }
     }

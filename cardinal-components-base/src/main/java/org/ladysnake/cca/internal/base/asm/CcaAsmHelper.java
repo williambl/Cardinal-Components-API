@@ -32,6 +32,9 @@ import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.ComponentContainer;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentProvider;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponent;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentKey;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentWrapper;
 import org.ladysnake.cca.internal.base.AbstractComponentContainer;
 import org.ladysnake.cca.internal.base.QualifiedComponentFactory;
 import org.objectweb.asm.ClassReader;
@@ -72,6 +75,8 @@ public final class CcaAsmHelper {
     public static final String COMPONENT = Type.getInternalName(Component.class);
     public static final String COMPONENT_CONTAINER = Type.getInternalName(ComponentContainer.class);
     public static final String COMPONENT_TYPE = Type.getInternalName(ComponentKey.class);
+    public static final String IMMUTABLE_COMPONENT_TYPE = Type.getInternalName(ImmutableComponentKey.class);
+    public static final String IMMUTABLE_COMPONENT_WRAPPER = Type.getInternalName(ImmutableComponentWrapper.class);
     public static final String DYNAMIC_COMPONENT_CONTAINER_IMPL = Type.getInternalName(AbstractComponentContainer.class);
     public static final String IDENTIFIER = FabricLoader.getInstance().getMappingResolver().mapClassName("intermediary", "net.minecraft.class_2960").replace('.', '/');
     public static final String EVENT = Type.getInternalName(Event.class);
@@ -79,8 +84,11 @@ public final class CcaAsmHelper {
     public static final String STATIC_COMPONENT_CONTAINER = createClassName("GeneratedComponentContainer");
     public static final String STATIC_CONTAINER_GETTER_DESC = "()L" + COMPONENT + ";";
     public static final String STATIC_COMPONENT_TYPE = createClassName("ComponentType");
+    public static final String STATIC_IMMUTABLE_COMPONENT_TYPE = createClassName("ImmutableComponentType");
     public static final String STATIC_CONTAINER_FACTORY = createClassName("GeneratedContainerFactory");
+    public static final String STATIC_IMMUTABLE_COMPONENT_WRAPPER = createClassName("GeneratedImmutableComponentWrapper");
     public static final String ABSTRACT_COMPONENT_CONTAINER_CTOR_DESC;
+    public static final String IMMUTABLE_COMPONENT_WRAPPER_CTOR_DESC;
 
     private static final List<AsmGeneratedCallbackInfo> asmGeneratedCallbacks = findAsmComponentCallbacks();
 
@@ -89,6 +97,7 @@ public final class CcaAsmHelper {
     static {
         try {
             ABSTRACT_COMPONENT_CONTAINER_CTOR_DESC = Type.getConstructorDescriptor(AbstractComponentContainer.class.getConstructor());
+            IMMUTABLE_COMPONENT_WRAPPER_CTOR_DESC = Type.getConstructorDescriptor(ImmutableComponentWrapper.class.getDeclaredConstructor(ImmutableComponentKey.class, Object.class, ImmutableComponent.class));
         } catch (NoSuchMethodException e) {
             throw new IllegalStateException("Failed to find one or more method descriptors", e);
         }
