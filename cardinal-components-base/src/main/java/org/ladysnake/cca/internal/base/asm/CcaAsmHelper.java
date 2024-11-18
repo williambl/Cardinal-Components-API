@@ -113,6 +113,8 @@ public final class CcaAsmHelper {
     public static final String IMMUTABLE_WRAPPER_WRITE_SYNC_DESC;
     public static final String SERVER_TICK_DESC;
     public static final String CLIENT_TICK_DESC;
+    public static final String IMMUTABLE_WRAPPER_SERVER_TICK_DESC;
+    public static final String IMMUTABLE_WRAPPER_CLIENT_TICK_DESC;
     public static final String IMMUTABLE_BSM_DESC;
 
     private static final List<AsmGeneratedCallbackInfo> asmGeneratedCallbacks = findAsmComponentCallbacks();
@@ -131,6 +133,8 @@ public final class CcaAsmHelper {
             IMMUTABLE_WRAPPER_WRITE_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperWrite", ImmutableComponentWrapper.class, NbtCompound.class, RegistryWrapper.WrapperLookup.class));
             IMMUTABLE_WRAPPER_APPLY_SYNC_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperApplySync", ImmutableComponentWrapper.class, RegistryByteBuf.class));
             IMMUTABLE_WRAPPER_WRITE_SYNC_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperWriteSync", ImmutableComponentWrapper.class, RegistryByteBuf.class));
+            IMMUTABLE_WRAPPER_SERVER_TICK_DESC = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(ImmutableComponentWrapper.class));
+            IMMUTABLE_WRAPPER_CLIENT_TICK_DESC = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(ImmutableComponentWrapper.class));
             SERVER_TICK_DESC = Type.getMethodDescriptor(ServerTickingComponent.class.getMethod("serverTick"));
             CLIENT_TICK_DESC = Type.getMethodDescriptor(ClientTickingComponent.class.getMethod("clientTick"));
             IMMUTABLE_BSM_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, TypeDescriptor.class, String.class, java.lang.reflect.Type.class));

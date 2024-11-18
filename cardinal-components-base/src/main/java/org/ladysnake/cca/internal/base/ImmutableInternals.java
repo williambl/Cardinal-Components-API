@@ -21,11 +21,13 @@ import java.util.Map;
 public class ImmutableInternals {
     private static final MethodHandle SET;
     private static final MethodHandle DECONSTRUCT_WRAPPER;
+    private static final MethodHandle RUN_TRANSFORMER;
 
     static {
         try {
             DECONSTRUCT_WRAPPER = MethodHandles.lookup().findStatic(ImmutableInternals.class, "deconstructWrapper", MethodType.methodType(Object.class.arrayType(), ImmutableComponentWrapper.class));
             SET = MethodHandles.lookup().findVirtual(ImmutableComponentWrapper.class, "setData", MethodType.methodType(void.class, ImmutableComponent.class));
+            RUN_TRANSFORMER = MethodHandles.lookup().findStatic(ImmutableInternals.class, "runTransformer", MethodType.methodType(void.class, ImmutableComponent.Modifier.class, ImmutableComponentWrapper.class));
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -67,18 +69,12 @@ public class ImmutableInternals {
         if (modifier == null) {
             return MethodHandles.empty(MethodType.methodType(void.class, ImmutableComponentWrapper.class));
         }
-        // todo for tomorrow: work out how to get a MethodHandle from a lambda / anonymous class
-        // so that this doesn't happen:
-        // java.lang.IllegalAccessException: symbolic reference class is not accessible: class org.ladysnake.cca.test.entity.CcaEntityTestMod$$Lambda/0x0000000601c90428
 
-        // (c, o) -> c
-        var transform = lookup.bind(modifier, "modify", CcaAsmHelper.MODIFIER_MODIFY_TYPE);
-        // (c, o) -> void
-        var tfAndSet = MethodHandles.filterReturnValue(transform, SET);
-        // ([c,o]) -> void
-        var spreadTfAndSet = MethodHandles.spreadInvoker(tfAndSet.type(), 0).bindTo(tfAndSet);
-        // w -> void
-        return MethodHandles.filterArguments(spreadTfAndSet, 0, DECONSTRUCT_WRAPPER);
+        return RUN_TRANSFORMER.bindTo(modifier);
+    }
+
+    public static <C extends ImmutableComponent, O> void runTransformer(ImmutableComponent.Modifier<C, O> transformer, ImmutableComponentWrapper<C, O> wrapper) {
+        wrapper.setData(transformer.modify(wrapper.getData(), wrapper.getOwner()));
     }
 
     public static <C extends ImmutableComponent, O> Object[] deconstructWrapper(ImmutableComponentWrapper<C, O> wrapper) {

@@ -101,11 +101,11 @@ public final class CcaImmutableBootstrap {
 
         if (serverTicker != null) {
             ImmutableInternals.serverTickHandlers.put(Pair.of(key.getId(), targetClass), serverTicker);
-            makeTicker(key, targetClass, writer, CcaAsmHelper.SERVER_TICKING_COMPONENT, "serverTick", CcaAsmHelper.SERVER_TICK_DESC);
+            makeTicker(key, targetClass, writer, CcaAsmHelper.SERVER_TICKING_COMPONENT, "serverTick", CcaAsmHelper.SERVER_TICK_DESC, CcaAsmHelper.IMMUTABLE_WRAPPER_SERVER_TICK_DESC);
         }
         if (clientTicker != null) {
             ImmutableInternals.clientTickHandlers.put(Pair.of(key.getId(), targetClass), clientTicker);
-            makeTicker(key, targetClass, writer, CcaAsmHelper.CLIENT_TICKING_COMPONENT, "clientTick", CcaAsmHelper.CLIENT_TICK_DESC);
+            makeTicker(key, targetClass, writer, CcaAsmHelper.CLIENT_TICKING_COMPONENT, "clientTick", CcaAsmHelper.CLIENT_TICK_DESC, CcaAsmHelper.IMMUTABLE_WRAPPER_CLIENT_TICK_DESC);
         }
         //todo load/unload handlers
 
@@ -113,13 +113,13 @@ public final class CcaImmutableBootstrap {
         return (Class<W>) CcaAsmHelper.generateClass(writer, false, null);
     }
 
-    private static <C extends ImmutableComponent, O> void makeTicker(ImmutableComponentKey<C> key, Class<O> targetClass, ClassNode writer, String interfaceName, String methodName, String methodDesc) {
+    private static <C extends ImmutableComponent, O> void makeTicker(ImmutableComponentKey<C> key, Class<O> targetClass, ClassNode writer, String interfaceName, String methodName, String methodDesc, String dynMethodDesc) {
         writer.interfaces.add(interfaceName);
         MethodVisitor onTick = writer.visitMethod(Opcodes.ACC_PUBLIC, methodName, methodDesc, null, null);
         onTick.visitVarInsn(Opcodes.ALOAD, 0); // this
         onTick.visitInvokeDynamicInsn(
             methodName,
-            methodDesc,
+            dynMethodDesc,
             new Handle(
                 H_INVOKESTATIC,
                 CcaAsmHelper.IMMUTABLE_INTERNALS,
