@@ -22,32 +22,33 @@
  */
 package org.ladysnake.cca.internal.base.asm;
 
-import com.mojang.serialization.MapCodec;
-import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.util.Identifier;
+import com.mojang.datafixers.util.Pair;
 import org.ladysnake.cca.api.v3.component.ComponentFactory;
-import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponent;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentFactory;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentKey;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentWrapper;
 import org.ladysnake.cca.internal.base.ImmutableInternals;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.io.IOException;
-import java.lang.invoke.LambdaMetafactory;
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+
+import static org.objectweb.asm.Opcodes.H_INVOKESTATIC;
 
 public final class CcaImmutableBootstrap {
     public static <C extends ImmutableComponent, O, W extends ImmutableComponentWrapper<C, O>> Class<W> makeWrapper(
         ImmutableComponentKey<C> key,
-        Class<O> targetClass
+        Class<O> targetClass,
+        ImmutableComponent.Modifier<C,O> serverTicker,
+        ImmutableComponent.Modifier<C,O> clientTicker,
+        ImmutableComponent.Modifier<C,O> serverOnLoad,
+        ImmutableComponent.Modifier<C,O> clientOnLoad
     ) throws IOException, NoSuchMethodException, IllegalAccessException {
         ClassNode writer = new ClassNode(CcaAsmHelper.ASM_VERSION);
         writer.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, CcaAsmHelper.STATIC_IMMUTABLE_COMPONENT_WRAPPER + "$" + CcaAsmHelper.getJavaIdentifierName(key.getId()), null, CcaAsmHelper.IMMUTABLE_COMPONENT_WRAPPER, null);
@@ -98,8 +99,37 @@ public final class CcaImmutableBootstrap {
             writeSyncPacket.visitEnd();
         }
 
+        if (serverTicker != null) {
+            ImmutableInternals.serverTickHandlers.put(Pair.of(key.getId(), targetClass), serverTicker);
+            makeTicker(key, targetClass, writer, CcaAsmHelper.SERVER_TICKING_COMPONENT, "serverTick", CcaAsmHelper.SERVER_TICK_DESC);
+        }
+        if (clientTicker != null) {
+            ImmutableInternals.clientTickHandlers.put(Pair.of(key.getId(), targetClass), clientTicker);
+            makeTicker(key, targetClass, writer, CcaAsmHelper.CLIENT_TICKING_COMPONENT, "clientTick", CcaAsmHelper.CLIENT_TICK_DESC);
+        }
+        //todo load/unload handlers
+
         writer.visitEnd();
         return (Class<W>) CcaAsmHelper.generateClass(writer, false, null);
+    }
+
+    private static <C extends ImmutableComponent, O> void makeTicker(ImmutableComponentKey<C> key, Class<O> targetClass, ClassNode writer, String interfaceName, String methodName, String methodDesc) {
+        writer.interfaces.add(interfaceName);
+        MethodVisitor onTick = writer.visitMethod(Opcodes.ACC_PUBLIC, methodName, methodDesc, null, null);
+        onTick.visitVarInsn(Opcodes.ALOAD, 0); // this
+        onTick.visitInvokeDynamicInsn(
+            methodName,
+            methodDesc,
+            new Handle(
+                H_INVOKESTATIC,
+                CcaAsmHelper.IMMUTABLE_INTERNALS,
+                "bootstrap",
+                CcaAsmHelper.IMMUTABLE_BSM_DESC,
+                false),
+            key.getId().toString(),
+            Type.getType(targetClass));
+        onTick.visitInsn(Opcodes.RETURN);
+        onTick.visitEnd();
     }
 
     public static <C extends ImmutableComponent, O, W extends ImmutableComponentWrapper<C, O>> ComponentFactory<O, W> makeFactory(

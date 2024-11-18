@@ -1,11 +1,15 @@
 package org.ladysnake.cca.api.v3.component.immutable;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryWrapper;
-import org.ladysnake.cca.api.v3.component.Component;
-
 public interface ImmutableComponent {
-    interface Ticker<C extends ImmutableComponent, O> {
-        C onTick(C component, O attachedTo);
+    interface Modifier<C extends ImmutableComponent, O> {
+        C modify(C component, O attachedTo);
+    }
+    interface Listener<C extends ImmutableComponent, O> extends Modifier<C, O> {
+        void listen(C component, O attachedTo);
+        @Override
+        default C modify(C component, O attachedTo) {
+            this.listen(component, attachedTo);
+            return component;
+        }
     }
 }

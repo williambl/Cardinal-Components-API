@@ -40,6 +40,8 @@ import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponent;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentKey;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentWrapper;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
+import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
+import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 import org.ladysnake.cca.internal.base.AbstractComponentContainer;
 import org.ladysnake.cca.internal.base.ImmutableInternals;
 import org.ladysnake.cca.internal.base.QualifiedComponentFactory;
@@ -56,6 +58,7 @@ import org.objectweb.asm.util.CheckClassAdapter;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.invoke.TypeDescriptor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
@@ -85,9 +88,12 @@ public final class CcaAsmHelper {
     public static final String IMMUTABLE_COMPONENT_WRAPPER = Type.getInternalName(ImmutableComponentWrapper.class);
     public static final String IMMUTABLE_INTERNALS = Type.getInternalName(ImmutableInternals.class);
     public static final String AUTO_SYNCED_COMPONENT = Type.getInternalName(AutoSyncedComponent.class);
+    public static final String SERVER_TICKING_COMPONENT = Type.getInternalName(ServerTickingComponent.class);
+    public static final String CLIENT_TICKING_COMPONENT = Type.getInternalName(ClientTickingComponent.class);
     public static final String DYNAMIC_COMPONENT_CONTAINER_IMPL = Type.getInternalName(AbstractComponentContainer.class);
     public static final String IDENTIFIER = FabricLoader.getInstance().getMappingResolver().mapClassName("intermediary", "net.minecraft.class_2960").replace('.', '/');
     public static final String EVENT = Type.getInternalName(Event.class);
+    public static final MethodType MODIFIER_MODIFY_TYPE = MethodType.methodType(void.class, ImmutableComponent.class, Object.class);
     // generated references
     public static final String STATIC_COMPONENT_CONTAINER = createClassName("GeneratedComponentContainer");
     public static final String STATIC_CONTAINER_GETTER_DESC = "()L" + COMPONENT + ";";
@@ -105,6 +111,9 @@ public final class CcaAsmHelper {
     public static final String IMMUTABLE_WRAPPER_WRITE_DESC;
     public static final String IMMUTABLE_WRAPPER_APPLY_SYNC_DESC;
     public static final String IMMUTABLE_WRAPPER_WRITE_SYNC_DESC;
+    public static final String SERVER_TICK_DESC;
+    public static final String CLIENT_TICK_DESC;
+    public static final String IMMUTABLE_BSM_DESC;
 
     private static final List<AsmGeneratedCallbackInfo> asmGeneratedCallbacks = findAsmComponentCallbacks();
 
@@ -122,6 +131,9 @@ public final class CcaAsmHelper {
             IMMUTABLE_WRAPPER_WRITE_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperWrite", ImmutableComponentWrapper.class, NbtCompound.class, RegistryWrapper.WrapperLookup.class));
             IMMUTABLE_WRAPPER_APPLY_SYNC_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperApplySync", ImmutableComponentWrapper.class, RegistryByteBuf.class));
             IMMUTABLE_WRAPPER_WRITE_SYNC_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperWriteSync", ImmutableComponentWrapper.class, RegistryByteBuf.class));
+            SERVER_TICK_DESC = Type.getMethodDescriptor(ServerTickingComponent.class.getMethod("serverTick"));
+            CLIENT_TICK_DESC = Type.getMethodDescriptor(ClientTickingComponent.class.getMethod("clientTick"));
+            IMMUTABLE_BSM_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, TypeDescriptor.class, String.class, java.lang.reflect.Type.class));
         } catch (NoSuchMethodException e) {
             throw new IllegalStateException("Failed to find one or more method descriptors", e);
         }

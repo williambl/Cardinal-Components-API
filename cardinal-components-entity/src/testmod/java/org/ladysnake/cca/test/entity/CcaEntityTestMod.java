@@ -59,10 +59,10 @@ public class CcaEntityTestMod implements ModInitializer, EntityComponentInitiali
         registry.beginRegistration(CamelEntity.class, Vita.KEY).impl(EntityVita.class).respawnStrategy(RespawnCopyStrategy.ALWAYS_COPY).end(owner -> new EntityVita(owner, CAMEL_BASE_VITA));
         registry.beginRegistration(ShulkerEntity.class, LoadAwareTestComponent.KEY).impl(LoadAwareTestComponent.class).end(e -> new LoadAwareTestComponent());
         registry.beginImmutableRegistration(PlayerEntity.class, Energy.KEY)
-            /*.onServerTick(PlayerEnergy::onServerTick)
+            .onServerTick(PlayerEnergy::onServerTick)
             .onClientTick(PlayerEnergy::onClientTick)
             .onServerLoad(PlayerEnergy::onServerLoad)
-            .onClientLoad(PlayerEnergy::onClientLoad)*/
+            .onClientLoad(PlayerEnergy::onClientLoad)
             .respawnStrategy(RespawnCopyStrategy.INVENTORY)
             .end($ -> new Energy(0));
     }

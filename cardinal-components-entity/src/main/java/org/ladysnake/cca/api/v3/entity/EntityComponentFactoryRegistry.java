@@ -163,6 +163,11 @@ public interface EntityComponentFactoryRegistry {
         ImmutableRegistration<C, E> filter(Predicate<Class<? extends E>> test);
         ImmutableRegistration<C, E> after(ComponentKey<?> dependency);
         ImmutableRegistration<C, E> respawnStrategy(RespawnCopyStrategy<? super ImmutableComponentWrapper<C, E>> strategy);
+        ImmutableRegistration<C, E> onServerTick(ImmutableComponent.Modifier<C, E> modifier);
+        ImmutableRegistration<C, E> onClientTick(ImmutableComponent.Modifier<C, E> modifier);
+        ImmutableRegistration<C, E> onServerLoad(ImmutableComponent.Modifier<C, E> modifier);
+        ImmutableRegistration<C, E> onClientLoad(ImmutableComponent.Modifier<C, E> modifier);
+
         void end(ImmutableComponentFactory<E, C> factory);
     }
 }

@@ -24,6 +24,7 @@ package org.ladysnake.cca.internal.entity;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.ComponentContainer;
 import org.ladysnake.cca.api.v3.component.ComponentFactory;
@@ -244,6 +245,10 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
         private final Class<E> target;
         private final ImmutableComponentKey<C> key;
         private final Set<ComponentKey<?>> dependencies;
+        private @Nullable ImmutableComponent.Modifier<C, E> serverTicker;
+        private @Nullable ImmutableComponent.Modifier<C, E> clientTicker;
+        private @Nullable ImmutableComponent.Modifier<C, E> serverOnLoad;
+        private @Nullable ImmutableComponent.Modifier<C, E> clientOnLoad;
         private Predicate<Class<? extends E>> test;
 
         ImmutableRegistrationImpl(Class<E> target, ImmutableComponentKey<C> key) {
@@ -273,10 +278,41 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
         }
 
         @Override
+        public ImmutableRegistration<C, E> onServerTick(ImmutableComponent.Modifier<C, E> modifier) {
+            this.serverTicker = modifier;
+            return this;
+        }
+
+        @Override
+        public ImmutableRegistration<C, E> onClientTick(ImmutableComponent.Modifier<C, E> modifier) {
+            this.clientTicker = modifier;
+            return this;
+        }
+
+        @Override
+        public ImmutableRegistration<C, E> onServerLoad(ImmutableComponent.Modifier<C, E> modifier) {
+            this.serverOnLoad = modifier;
+            return this;
+        }
+
+        @Override
+        public ImmutableRegistration<C, E> onClientLoad(ImmutableComponent.Modifier<C, E> modifier) {
+            this.clientOnLoad = modifier;
+            return this;
+        }
+
+        @Override
         public void end(ImmutableComponentFactory<E, C> factory) {
             try {
                 StaticEntityComponentPlugin.this.checkLoading(Registration.class, "end");
-                Class<? extends ImmutableComponentWrapper<C, E>> componentClass = CcaImmutableBootstrap.makeWrapper(this.key, this.target);
+                Class<? extends ImmutableComponentWrapper<C, E>> componentClass = CcaImmutableBootstrap.makeWrapper(
+                    this.key,
+                    this.target,
+                    this.serverTicker,
+                    this.clientTicker,
+                    this.serverOnLoad,
+                    this.clientOnLoad
+                );
                 ComponentFactory<E, ? extends ImmutableComponentWrapper<C, E>> componentFactory = CcaImmutableBootstrap.makeFactory(this.key, this.target, componentClass, factory);
                 if (this.test == null) {
                     StaticEntityComponentPlugin.this.register0(

@@ -48,6 +48,7 @@ public abstract class ImmutableComponentWrapper<C extends ImmutableComponent, O>
         return this.data;
     }
 
+    //TODO more methods for this. syncing, unary operators, etc.
     public void setData(C data) {
         this.data = data;
     }
