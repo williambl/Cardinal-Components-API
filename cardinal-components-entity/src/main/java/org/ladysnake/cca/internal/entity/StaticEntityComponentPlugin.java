@@ -24,19 +24,16 @@ package org.ladysnake.cca.internal.entity;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
-import org.jetbrains.annotations.Nullable;
 import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.ComponentContainer;
 import org.ladysnake.cca.api.v3.component.ComponentFactory;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
-import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponent;
-import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentFactory;
-import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentKey;
-import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentWrapper;
+import org.ladysnake.cca.api.v3.component.immutable.*;
 import org.ladysnake.cca.api.v3.entity.EntityComponentFactoryRegistry;
 import org.ladysnake.cca.api.v3.entity.EntityComponentInitializer;
 import org.ladysnake.cca.api.v3.entity.RespawnableComponent;
 import org.ladysnake.cca.api.v3.entity.RespawnCopyStrategy;
+import org.ladysnake.cca.internal.base.ImmutableInternals;
 import org.ladysnake.cca.internal.base.LazyDispatcher;
 import org.ladysnake.cca.internal.base.QualifiedComponentFactory;
 import org.ladysnake.cca.internal.base.asm.CcaImmutableBootstrap;
@@ -245,15 +242,13 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
         private final Class<E> target;
         private final ImmutableComponentKey<C> key;
         private final Set<ComponentKey<?>> dependencies;
-        private @Nullable ImmutableComponent.Modifier<C, E> serverTicker;
-        private @Nullable ImmutableComponent.Modifier<C, E> clientTicker;
-        private @Nullable ImmutableComponent.Modifier<C, E> serverOnLoad;
-        private @Nullable ImmutableComponent.Modifier<C, E> clientOnLoad;
+        private final Map<ImmutableComponentCallbackType<?>, ImmutableComponent.Modifier<C, E>> callbacks;
         private Predicate<Class<? extends E>> test;
 
         ImmutableRegistrationImpl(Class<E> target, ImmutableComponentKey<C> key) {
             this.target = target;
             this.dependencies = new LinkedHashSet<>();
+            this.callbacks = new HashMap<>();
             this.test = null;
             this.key = key;
         }
@@ -270,7 +265,6 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
             return this;
         }
 
-
         @Override
         public ImmutableRegistration<C, E> respawnStrategy(RespawnCopyStrategy<? super ImmutableComponentWrapper<C, E>> strategy) {
             CardinalEntityInternals.registerRespawnCopyStrat(this.key, this.target, strategy);
@@ -278,27 +272,39 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
         }
 
         @Override
-        public ImmutableRegistration<C, E> onServerTick(ImmutableComponent.Modifier<C, E> modifier) {
-            this.serverTicker = modifier;
+        public ImmutableRegistration<C, E> listen(ImmutableComponentCallbackType<?> type, ImmutableComponent.Modifier<C, E> modifier) {
+            this.callbacks.put(type, modifier);
             return this;
+        }
+
+        @Override
+        public ImmutableRegistration<C, E> onServerTick(ImmutableComponent.Modifier<C, E> modifier) {
+            return this.listen(ImmutableComponentCallbackType.SERVER_TICK, modifier);
         }
 
         @Override
         public ImmutableRegistration<C, E> onClientTick(ImmutableComponent.Modifier<C, E> modifier) {
-            this.clientTicker = modifier;
-            return this;
+            return this.listen(ImmutableComponentCallbackType.CLIENT_TICK, modifier);
         }
 
         @Override
         public ImmutableRegistration<C, E> onServerLoad(ImmutableComponent.Modifier<C, E> modifier) {
-            this.serverOnLoad = modifier;
-            return this;
+            return this.listen(ImmutableComponentCallbackType.SERVER_LOAD, modifier);
         }
 
         @Override
         public ImmutableRegistration<C, E> onClientLoad(ImmutableComponent.Modifier<C, E> modifier) {
-            this.clientOnLoad = modifier;
-            return this;
+            return this.listen(ImmutableComponentCallbackType.CLIENT_LOAD, modifier);
+        }
+
+        @Override
+        public ImmutableRegistration<C, E> onServerUnload(ImmutableComponent.Modifier<C, E> modifier) {
+            return this.listen(ImmutableComponentCallbackType.SERVER_UNLOAD, modifier);
+        }
+
+        @Override
+        public ImmutableRegistration<C, E> onClientUnload(ImmutableComponent.Modifier<C, E> modifier) {
+            return this.listen(ImmutableComponentCallbackType.CLIENT_UNLOAD, modifier);
         }
 
         @Override
@@ -308,10 +314,7 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
                 Class<? extends ImmutableComponentWrapper<C, E>> componentClass = CcaImmutableBootstrap.makeWrapper(
                     this.key,
                     this.target,
-                    this.serverTicker,
-                    this.clientTicker,
-                    this.serverOnLoad,
-                    this.clientOnLoad
+                    this.callbacks.keySet()
                 );
                 ComponentFactory<E, ? extends ImmutableComponentWrapper<C, E>> componentFactory = CcaImmutableBootstrap.makeFactory(this.key, this.target, componentClass, factory);
                 if (this.test == null) {
@@ -330,6 +333,9 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
                             this.dependencies
                         )
                     ));
+                }
+                for (var callback : callbacks.entrySet()) {
+                    ImmutableInternals.addListener(this.key, this.target, callback.getKey(), callback.getValue());
                 }
             } catch (IOException | NoSuchMethodException | IllegalAccessException e) {
                 throw new RuntimeException(e);

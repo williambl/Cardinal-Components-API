@@ -28,10 +28,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.ComponentFactory;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
-import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponent;
-import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentFactory;
-import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentKey;
-import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentWrapper;
+import org.ladysnake.cca.api.v3.component.immutable.*;
 
 import java.util.function.Predicate;
 
@@ -163,10 +160,13 @@ public interface EntityComponentFactoryRegistry {
         ImmutableRegistration<C, E> filter(Predicate<Class<? extends E>> test);
         ImmutableRegistration<C, E> after(ComponentKey<?> dependency);
         ImmutableRegistration<C, E> respawnStrategy(RespawnCopyStrategy<? super ImmutableComponentWrapper<C, E>> strategy);
+        ImmutableRegistration<C, E> listen(ImmutableComponentCallbackType<?> type, ImmutableComponent.Modifier<C, E> modifier);
         ImmutableRegistration<C, E> onServerTick(ImmutableComponent.Modifier<C, E> modifier);
         ImmutableRegistration<C, E> onClientTick(ImmutableComponent.Modifier<C, E> modifier);
         ImmutableRegistration<C, E> onServerLoad(ImmutableComponent.Modifier<C, E> modifier);
         ImmutableRegistration<C, E> onClientLoad(ImmutableComponent.Modifier<C, E> modifier);
+        ImmutableRegistration<C, E> onServerUnload(ImmutableComponent.Modifier<C, E> modifier);
+        ImmutableRegistration<C, E> onClientUnload(ImmutableComponent.Modifier<C, E> modifier);
 
         void end(ImmutableComponentFactory<E, C> factory);
     }

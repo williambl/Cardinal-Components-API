@@ -3,6 +3,7 @@ package org.ladysnake.cca.internal.base;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.MapCodec;
+import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.RegistryByteBuf;
@@ -10,13 +11,22 @@ import net.minecraft.registry.RegistryOps;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.util.Identifier;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponent;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentCallbackType;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentKey;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentWrapper;
+import org.ladysnake.cca.api.v3.component.load.ClientLoadAwareComponent;
+import org.ladysnake.cca.api.v3.component.load.ClientUnloadAwareComponent;
+import org.ladysnake.cca.api.v3.component.load.ServerLoadAwareComponent;
+import org.ladysnake.cca.api.v3.component.load.ServerUnloadAwareComponent;
+import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
+import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 import org.ladysnake.cca.internal.base.asm.CcaAsmHelper;
 
 import java.lang.invoke.*;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class ImmutableInternals {
     private static final MethodHandle SET;
@@ -34,33 +44,37 @@ public class ImmutableInternals {
     }
 
     //TODO id and type do not uniquely describe a component implementation - e.g. predicates in entity component registration
-    public static final Map<Pair<Identifier, Type>, ImmutableComponent.Modifier<?, ?>> serverTickHandlers = new HashMap<>();
-    public static final Map<Pair<Identifier, Type>, ImmutableComponent.Modifier<?, ?>> clientTickHandlers = new HashMap<>();
-    public static final Map<Pair<Identifier, Type>, ImmutableComponent.Modifier<?, ?>> loadServersideHandlers = new HashMap<>();
-    public static final Map<Pair<Identifier, Type>, ImmutableComponent.Modifier<?, ?>> loadClientsideHandlers = new HashMap<>();
-    public static final Map<Pair<Identifier, Type>, ImmutableComponent.Modifier<?, ?>> unloadServersideHandlers = new HashMap<>();
-    public static final Map<Pair<Identifier, Type>, ImmutableComponent.Modifier<?, ?>> unloadClientsideHandlers = new HashMap<>();
+    public static final Map<ImmutableComponentCallbackType<?>, Map<Pair<Identifier, Type>, ImmutableComponent.Modifier<?, ?>>> listeners = new HashMap<>();
+    public static final Set<ImmutableComponentCallbackType<?>> CALLBACK_TYPES = Set.of(
+        ImmutableComponentCallbackType.SERVER_TICK,
+        ImmutableComponentCallbackType.CLIENT_TICK,
+        ImmutableComponentCallbackType.SERVER_LOAD,
+        ImmutableComponentCallbackType.CLIENT_LOAD,
+        ImmutableComponentCallbackType.SERVER_UNLOAD,
+        ImmutableComponentCallbackType.CLIENT_UNLOAD
+    );
+
+    public static <C extends ImmutableComponent, E extends Entity> void addListener(ImmutableComponentKey<C> key, Class<E> target, ImmutableComponentCallbackType<?> type, ImmutableComponent.Modifier<C, E> modifier) {
+        listeners.computeIfAbsent(type, $ -> new HashMap<>()).put(Pair.of(key.getId(), target), modifier);
+    }
 
     public static Object bootstrap(MethodHandles.Lookup lookup, String methodName, TypeDescriptor type,
                                    String id,
                                    Type targetClass) throws Throwable {
         MethodType methodType;
-        if (type instanceof MethodType mt)
+        if (type instanceof MethodType mt) {
             methodType = mt;
-        else {
+        } else {
             methodType = null;
             if (!MethodHandle.class.equals(type))
                 throw new IllegalArgumentException(type.toString());
         }
-        MethodHandle handle = switch (methodName) {
-            case "serverTick" -> makeModifierHandler(lookup, id, targetClass, serverTickHandlers);
-            case "clientTick" -> makeModifierHandler(lookup, id, targetClass, clientTickHandlers);
-            case "loadServerside" -> makeModifierHandler(lookup, id, targetClass, loadServersideHandlers);
-            case "loadClientside" -> makeModifierHandler(lookup, id, targetClass, loadClientsideHandlers);
-            case "unloadServerside" -> makeModifierHandler(lookup, id, targetClass, unloadServersideHandlers);
-            case "unloadClientside" -> makeModifierHandler(lookup, id, targetClass, unloadClientsideHandlers);
-            default -> throw new IllegalArgumentException(methodName);
-        };
+        ImmutableComponentCallbackType<?> callbackType = CALLBACK_TYPES.stream()
+            .filter(t -> t.methodName().equals(methodName))
+            .filter(t -> methodType == null || t.implType().equals(methodType))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Invalid method name/type: %s:%s".formatted(methodName, methodType == null ? "?" : methodType.descriptorString())));
+        MethodHandle handle = makeModifierHandler(lookup, id, targetClass, listeners.getOrDefault(callbackType, Map.of()));
         return methodType != null ? new ConstantCallSite(handle) : handle;
     }
 

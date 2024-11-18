@@ -22,13 +22,9 @@
  */
 package org.ladysnake.cca.internal.base.asm;
 
-import com.mojang.datafixers.util.Pair;
+import com.google.common.collect.Iterables;
 import org.ladysnake.cca.api.v3.component.ComponentFactory;
-import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponent;
-import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentFactory;
-import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentKey;
-import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentWrapper;
-import org.ladysnake.cca.internal.base.ImmutableInternals;
+import org.ladysnake.cca.api.v3.component.immutable.*;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -38,6 +34,8 @@ import org.objectweb.asm.tree.ClassNode;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.Iterator;
+import java.util.List;
 
 import static org.objectweb.asm.Opcodes.H_INVOKESTATIC;
 
@@ -45,10 +43,7 @@ public final class CcaImmutableBootstrap {
     public static <C extends ImmutableComponent, O, W extends ImmutableComponentWrapper<C, O>> Class<W> makeWrapper(
         ImmutableComponentKey<C> key,
         Class<O> targetClass,
-        ImmutableComponent.Modifier<C,O> serverTicker,
-        ImmutableComponent.Modifier<C,O> clientTicker,
-        ImmutableComponent.Modifier<C,O> serverOnLoad,
-        ImmutableComponent.Modifier<C,O> clientOnLoad
+        Iterable<ImmutableComponentCallbackType<?>> callbackTypes
     ) throws IOException, NoSuchMethodException, IllegalAccessException {
         ClassNode writer = new ClassNode(CcaAsmHelper.ASM_VERSION);
         writer.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, CcaAsmHelper.STATIC_IMMUTABLE_COMPONENT_WRAPPER + "$" + CcaAsmHelper.getJavaIdentifierName(key.getId()), null, CcaAsmHelper.IMMUTABLE_COMPONENT_WRAPPER, null);
@@ -99,24 +94,25 @@ public final class CcaImmutableBootstrap {
             writeSyncPacket.visitEnd();
         }
 
-        if (serverTicker != null) {
-            ImmutableInternals.serverTickHandlers.put(Pair.of(key.getId(), targetClass), serverTicker);
-            makeTicker(key, targetClass, writer, CcaAsmHelper.SERVER_TICKING_COMPONENT, "serverTick", CcaAsmHelper.SERVER_TICK_DESC, CcaAsmHelper.IMMUTABLE_WRAPPER_SERVER_TICK_DESC);
+        for (var callbackType : callbackTypes) {
+            implementCallbackItf(key, targetClass, writer, callbackType);
         }
-        if (clientTicker != null) {
-            ImmutableInternals.clientTickHandlers.put(Pair.of(key.getId(), targetClass), clientTicker);
-            makeTicker(key, targetClass, writer, CcaAsmHelper.CLIENT_TICKING_COMPONENT, "clientTick", CcaAsmHelper.CLIENT_TICK_DESC, CcaAsmHelper.IMMUTABLE_WRAPPER_CLIENT_TICK_DESC);
-        }
-        //todo load/unload handlers
 
         writer.visitEnd();
         return (Class<W>) CcaAsmHelper.generateClass(writer, false, null);
     }
 
-    private static <C extends ImmutableComponent, O> void makeTicker(ImmutableComponentKey<C> key, Class<O> targetClass, ClassNode writer, String interfaceName, String methodName, String methodDesc, String dynMethodDesc) {
+    private static <C extends ImmutableComponent, O> void implementCallbackItf(ImmutableComponentKey<C> key, Class<O> targetClass, ClassNode writer, ImmutableComponentCallbackType<?> callbackType) {
+        String interfaceName = Type.getInternalName(callbackType.itf());
         writer.interfaces.add(interfaceName);
+        String methodName = callbackType.methodName();
+        String methodDesc = callbackType.exposedType().toMethodDescriptorString();
+        var dynMethodType = callbackType.exposedType().insertParameterTypes(0, ImmutableComponentWrapper.class);
+        String dynMethodDesc = dynMethodType.toMethodDescriptorString();
         MethodVisitor onTick = writer.visitMethod(Opcodes.ACC_PUBLIC, methodName, methodDesc, null, null);
-        onTick.visitVarInsn(Opcodes.ALOAD, 0); // this
+        for (int i = 0; i < dynMethodType.parameterCount(); i++) {
+            onTick.visitVarInsn(Opcodes.ALOAD, i);
+        }
         onTick.visitInvokeDynamicInsn(
             methodName,
             dynMethodDesc,
