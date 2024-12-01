@@ -31,8 +31,8 @@ public class ImmutableInternals {
     }
 
     //TODO id and type do not uniquely describe a component implementation - e.g. predicates in entity component registration
-    public static final Map<ImmutableComponentHookType<?>, Map<Pair<Identifier, Type>, ImmutableComponent.Modifier<?, ?>>> listeners = new HashMap<>();
-    public static final Set<ImmutableComponentHookType<?>> CALLBACK_TYPES = Set.of(
+    public static final Map<ImmutableComponentHookType<?>, Map<Pair<Identifier, Type>, ImmutableComponent.Modifier<?, ?>>> HOOKS = new HashMap<>();
+    public static final Set<ImmutableComponentHookType<?>> HOOK_TYPES = Set.of(
         ImmutableComponentHookType.SERVER_TICK,
         ImmutableComponentHookType.CLIENT_TICK,
         ImmutableComponentHookType.SERVER_LOAD,
@@ -41,8 +41,8 @@ public class ImmutableInternals {
         ImmutableComponentHookType.CLIENT_UNLOAD
     );
 
-    public static <C extends ImmutableComponent, E extends Entity> void addListener(ImmutableComponentKey<C> key, Class<E> target, ImmutableComponentHookType<?> type, ImmutableComponent.Modifier<C, E> modifier) {
-        listeners.computeIfAbsent(type, $ -> new HashMap<>()).put(Pair.of(key.getId(), target), modifier);
+    public static <C extends ImmutableComponent, E extends Entity> void addHook(ImmutableComponentKey<C> key, Class<E> target, ImmutableComponentHookType<?> type, ImmutableComponent.Modifier<C, E> modifier) {
+        HOOKS.computeIfAbsent(type, $ -> new HashMap<>()).put(Pair.of(key.getId(), target), modifier);
     }
 
     public static Object bootstrap(MethodHandles.Lookup lookup,
@@ -50,12 +50,12 @@ public class ImmutableInternals {
                                    MethodType methodType,
                                    String id,
                                    Type targetClass) throws Throwable {
-        ImmutableComponentHookType<?> callbackType = CALLBACK_TYPES.stream()
+        ImmutableComponentHookType<?> callbackType = HOOK_TYPES.stream()
             .filter(t -> t.methodName().equals(methodName))
             .filter(t -> t.implType().equals(methodType))
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException("Invalid method name/type: %s:%s".formatted(methodName, methodType.descriptorString())));
-        MethodHandle handle = makeModifierHandler(lookup, id, targetClass, listeners.getOrDefault(callbackType, Map.of()));
+        MethodHandle handle = makeModifierHandler(lookup, id, targetClass, HOOKS.getOrDefault(callbackType, Map.of()));
         return new ConstantCallSite(handle);
     }
 
@@ -70,10 +70,6 @@ public class ImmutableInternals {
 
     public static <C extends ImmutableComponent, O> void runTransformer(ImmutableComponent.Modifier<C, O> transformer, ImmutableComponentWrapper<C, O> wrapper) {
         wrapper.setData(transformer.modify(wrapper.getData(), wrapper.getOwner()));
-    }
-
-    public static <C extends ImmutableComponent, O> Object[] deconstructWrapper(ImmutableComponentWrapper<C, O> wrapper) {
-        return new Object[] {wrapper.getData(), wrapper.getOwner()};
     }
 
     public static <C extends ImmutableComponent> void wrapperRead(ImmutableComponentWrapper<C, ?> wrapper, NbtCompound compound, RegistryWrapper.WrapperLookup registries) {

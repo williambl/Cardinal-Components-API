@@ -335,7 +335,7 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
                     ));
                 }
                 for (var callback : hooks.entrySet()) {
-                    ImmutableInternals.addListener(this.key, this.target, callback.getKey(), callback.getValue());
+                    ImmutableInternals.addHook(this.key, this.target, callback.getKey(), callback.getValue());
                 }
             } catch (IOException | NoSuchMethodException | IllegalAccessException e) {
                 throw new RuntimeException(e);

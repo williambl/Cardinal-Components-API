@@ -7,6 +7,9 @@ import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.CopyableComponent;
 
+import java.util.function.BiFunction;
+import java.util.function.UnaryOperator;
+
 @ApiStatus.NonExtendable
 public abstract class ImmutableComponentWrapper<C extends ImmutableComponent, O> implements
     Component,
@@ -48,8 +51,31 @@ public abstract class ImmutableComponentWrapper<C extends ImmutableComponent, O>
         return this.data;
     }
 
-    //TODO more methods for this. syncing, unary operators, etc.
     public void setData(C data) {
         this.data = data;
+    }
+
+    public void setAndSync(C data) {
+        boolean shouldSync = !this.data.equals(data);
+        this.setData(this.data);
+        if (shouldSync) {
+            this.key.sync(this.owner);
+        }
+    }
+
+    public void update(UnaryOperator<C> operator) {
+        this.setData(operator.apply(this.data));
+    }
+
+    public void updateAndSync(UnaryOperator<C> operator) {
+        this.setAndSync(operator.apply(this.data));
+    }
+
+    public void update(ImmutableComponent.Modifier<C, O> modifier) {
+        this.setData(modifier.modify(this.data, this.owner));
+    }
+
+    public void updateAndSync(ImmutableComponent.Modifier<C, O> modifier) {
+        this.setAndSync(modifier.modify(this.data, this.owner));
     }
 }
