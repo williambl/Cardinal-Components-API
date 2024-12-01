@@ -242,13 +242,13 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
         private final Class<E> target;
         private final ImmutableComponentKey<C> key;
         private final Set<ComponentKey<?>> dependencies;
-        private final Map<ImmutableComponentCallbackType<?>, ImmutableComponent.Modifier<C, E>> callbacks;
+        private final Map<ImmutableComponentHookType<?>, ImmutableComponent.Modifier<C, E>> hooks;
         private Predicate<Class<? extends E>> test;
 
         ImmutableRegistrationImpl(Class<E> target, ImmutableComponentKey<C> key) {
             this.target = target;
             this.dependencies = new LinkedHashSet<>();
-            this.callbacks = new HashMap<>();
+            this.hooks = new HashMap<>();
             this.test = null;
             this.key = key;
         }
@@ -272,39 +272,39 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
         }
 
         @Override
-        public ImmutableRegistration<C, E> listen(ImmutableComponentCallbackType<?> type, ImmutableComponent.Modifier<C, E> modifier) {
-            this.callbacks.put(type, modifier);
+        public ImmutableRegistration<C, E> onHook(ImmutableComponentHookType<?> type, ImmutableComponent.Modifier<C, E> modifier) {
+            this.hooks.put(type, modifier);
             return this;
         }
 
         @Override
         public ImmutableRegistration<C, E> onServerTick(ImmutableComponent.Modifier<C, E> modifier) {
-            return this.listen(ImmutableComponentCallbackType.SERVER_TICK, modifier);
+            return this.onHook(ImmutableComponentHookType.SERVER_TICK, modifier);
         }
 
         @Override
         public ImmutableRegistration<C, E> onClientTick(ImmutableComponent.Modifier<C, E> modifier) {
-            return this.listen(ImmutableComponentCallbackType.CLIENT_TICK, modifier);
+            return this.onHook(ImmutableComponentHookType.CLIENT_TICK, modifier);
         }
 
         @Override
         public ImmutableRegistration<C, E> onServerLoad(ImmutableComponent.Modifier<C, E> modifier) {
-            return this.listen(ImmutableComponentCallbackType.SERVER_LOAD, modifier);
+            return this.onHook(ImmutableComponentHookType.SERVER_LOAD, modifier);
         }
 
         @Override
         public ImmutableRegistration<C, E> onClientLoad(ImmutableComponent.Modifier<C, E> modifier) {
-            return this.listen(ImmutableComponentCallbackType.CLIENT_LOAD, modifier);
+            return this.onHook(ImmutableComponentHookType.CLIENT_LOAD, modifier);
         }
 
         @Override
         public ImmutableRegistration<C, E> onServerUnload(ImmutableComponent.Modifier<C, E> modifier) {
-            return this.listen(ImmutableComponentCallbackType.SERVER_UNLOAD, modifier);
+            return this.onHook(ImmutableComponentHookType.SERVER_UNLOAD, modifier);
         }
 
         @Override
         public ImmutableRegistration<C, E> onClientUnload(ImmutableComponent.Modifier<C, E> modifier) {
-            return this.listen(ImmutableComponentCallbackType.CLIENT_UNLOAD, modifier);
+            return this.onHook(ImmutableComponentHookType.CLIENT_UNLOAD, modifier);
         }
 
         @Override
@@ -314,7 +314,7 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
                 Class<? extends ImmutableComponentWrapper<C, E>> componentClass = ImmutableComponentsAsm.makeWrapper(
                     this.key,
                     this.target,
-                    this.callbacks.keySet()
+                    this.hooks.keySet()
                 );
                 ComponentFactory<E, ? extends ImmutableComponentWrapper<C, E>> componentFactory = ImmutableComponentsAsm.makeFactory(this.key, this.target, componentClass, factory);
                 if (this.test == null) {
@@ -334,7 +334,7 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
                         )
                     ));
                 }
-                for (var callback : callbacks.entrySet()) {
+                for (var callback : hooks.entrySet()) {
                     ImmutableInternals.addListener(this.key, this.target, callback.getKey(), callback.getValue());
                 }
             } catch (IOException | NoSuchMethodException | IllegalAccessException e) {

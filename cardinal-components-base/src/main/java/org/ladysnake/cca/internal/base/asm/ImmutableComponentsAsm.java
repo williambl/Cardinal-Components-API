@@ -75,7 +75,7 @@ public final class ImmutableComponentsAsm {
     public static <C extends ImmutableComponent, O, W extends ImmutableComponentWrapper<C, O>> Class<W> makeWrapper(
         ImmutableComponentKey<C> key,
         Class<O> targetClass,
-        Iterable<ImmutableComponentCallbackType<?>> callbackTypes
+        Iterable<ImmutableComponentHookType<?>> hookTypes
     ) throws IOException, NoSuchMethodException, IllegalAccessException {
         ClassNode writer = new ClassNode(CcaAsmHelper.ASM_VERSION);
         writer.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, CcaAsmHelper.STATIC_IMMUTABLE_COMPONENT_WRAPPER + "$" + CcaAsmHelper.getJavaIdentifierName(key.getId()), null, CcaAsmHelper.IMMUTABLE_COMPONENT_WRAPPER, null);
@@ -126,20 +126,20 @@ public final class ImmutableComponentsAsm {
             writeSyncPacket.visitEnd();
         }
 
-        for (var callbackType : callbackTypes) {
-            implementCallbackItf(key, targetClass, writer, callbackType);
+        for (var hookType : hookTypes) {
+            implementHookItf(key, targetClass, writer, hookType);
         }
 
         writer.visitEnd();
         return (Class<W>) CcaAsmHelper.generateClass(writer, false, null);
     }
 
-    private static <C extends ImmutableComponent, O> void implementCallbackItf(ImmutableComponentKey<C> key, Class<O> targetClass, ClassNode writer, ImmutableComponentCallbackType<?> callbackType) {
-        String interfaceName = Type.getInternalName(callbackType.itf());
+    private static <C extends ImmutableComponent, O> void implementHookItf(ImmutableComponentKey<C> key, Class<O> targetClass, ClassNode writer, ImmutableComponentHookType<?> hookType) {
+        String interfaceName = Type.getInternalName(hookType.itf());
         writer.interfaces.add(interfaceName);
-        String methodName = callbackType.methodName();
-        String methodDesc = callbackType.exposedType().toMethodDescriptorString();
-        var dynMethodType = callbackType.exposedType().insertParameterTypes(0, ImmutableComponentWrapper.class);
+        String methodName = hookType.methodName();
+        String methodDesc = hookType.exposedType().toMethodDescriptorString();
+        var dynMethodType = hookType.exposedType().insertParameterTypes(0, ImmutableComponentWrapper.class);
         String dynMethodDesc = dynMethodType.toMethodDescriptorString();
         MethodVisitor onTick = writer.visitMethod(Opcodes.ACC_PUBLIC, methodName, methodDesc, null, null);
         for (int i = 0; i < dynMethodType.parameterCount(); i++) {

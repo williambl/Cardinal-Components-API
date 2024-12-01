@@ -1,8 +1,6 @@
 package org.ladysnake.cca.internal.base;
 
 import com.mojang.datafixers.util.Pair;
-import com.mojang.serialization.Dynamic;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtOps;
@@ -11,16 +9,9 @@ import net.minecraft.registry.RegistryOps;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.util.Identifier;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponent;
-import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentCallbackType;
+import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentHookType;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentKey;
 import org.ladysnake.cca.api.v3.component.immutable.ImmutableComponentWrapper;
-import org.ladysnake.cca.api.v3.component.load.ClientLoadAwareComponent;
-import org.ladysnake.cca.api.v3.component.load.ClientUnloadAwareComponent;
-import org.ladysnake.cca.api.v3.component.load.ServerLoadAwareComponent;
-import org.ladysnake.cca.api.v3.component.load.ServerUnloadAwareComponent;
-import org.ladysnake.cca.api.v3.component.tick.ClientTickingComponent;
-import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
-import org.ladysnake.cca.internal.base.asm.CcaAsmHelper;
 
 import java.lang.invoke.*;
 import java.lang.reflect.Type;
@@ -40,17 +31,17 @@ public class ImmutableInternals {
     }
 
     //TODO id and type do not uniquely describe a component implementation - e.g. predicates in entity component registration
-    public static final Map<ImmutableComponentCallbackType<?>, Map<Pair<Identifier, Type>, ImmutableComponent.Modifier<?, ?>>> listeners = new HashMap<>();
-    public static final Set<ImmutableComponentCallbackType<?>> CALLBACK_TYPES = Set.of(
-        ImmutableComponentCallbackType.SERVER_TICK,
-        ImmutableComponentCallbackType.CLIENT_TICK,
-        ImmutableComponentCallbackType.SERVER_LOAD,
-        ImmutableComponentCallbackType.CLIENT_LOAD,
-        ImmutableComponentCallbackType.SERVER_UNLOAD,
-        ImmutableComponentCallbackType.CLIENT_UNLOAD
+    public static final Map<ImmutableComponentHookType<?>, Map<Pair<Identifier, Type>, ImmutableComponent.Modifier<?, ?>>> listeners = new HashMap<>();
+    public static final Set<ImmutableComponentHookType<?>> CALLBACK_TYPES = Set.of(
+        ImmutableComponentHookType.SERVER_TICK,
+        ImmutableComponentHookType.CLIENT_TICK,
+        ImmutableComponentHookType.SERVER_LOAD,
+        ImmutableComponentHookType.CLIENT_LOAD,
+        ImmutableComponentHookType.SERVER_UNLOAD,
+        ImmutableComponentHookType.CLIENT_UNLOAD
     );
 
-    public static <C extends ImmutableComponent, E extends Entity> void addListener(ImmutableComponentKey<C> key, Class<E> target, ImmutableComponentCallbackType<?> type, ImmutableComponent.Modifier<C, E> modifier) {
+    public static <C extends ImmutableComponent, E extends Entity> void addListener(ImmutableComponentKey<C> key, Class<E> target, ImmutableComponentHookType<?> type, ImmutableComponent.Modifier<C, E> modifier) {
         listeners.computeIfAbsent(type, $ -> new HashMap<>()).put(Pair.of(key.getId(), target), modifier);
     }
 
@@ -59,7 +50,7 @@ public class ImmutableInternals {
                                    MethodType methodType,
                                    String id,
                                    Type targetClass) throws Throwable {
-        ImmutableComponentCallbackType<?> callbackType = CALLBACK_TYPES.stream()
+        ImmutableComponentHookType<?> callbackType = CALLBACK_TYPES.stream()
             .filter(t -> t.methodName().equals(methodName))
             .filter(t -> t.implType().equals(methodType))
             .findFirst()
