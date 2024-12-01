@@ -22,9 +22,15 @@
  */
 package org.ladysnake.cca.internal.base.asm;
 
-import com.google.common.collect.Iterables;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.RegistryByteBuf;
+import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.server.network.ServerPlayerEntity;
+import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.ComponentFactory;
 import org.ladysnake.cca.api.v3.component.immutable.*;
+import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
+import org.ladysnake.cca.internal.base.ImmutableInternals;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -34,12 +40,38 @@ import org.objectweb.asm.tree.ClassNode;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.util.Iterator;
-import java.util.List;
 
 import static org.objectweb.asm.Opcodes.H_INVOKESTATIC;
 
-public final class CcaImmutableBootstrap {
+public final class ImmutableComponentsAsm {
+    public static final String IMMUTABLE_COMPONENT_WRAPPER_CTOR_DESC;
+    public static final String COMPONENT_READ_FROM_NBT_DESC;
+    public static final String COMPONENT_WRITE_TO_NBT_DESC;
+    public static final String AUTO_SYNCED_COMPONENT_APPLY_SYNC_PACKET_DESC;
+    public static final String AUTO_SYNCED_COMPONENT_WRITE_SYNC_PACKET_DESC;
+    public static final String IMMUTABLE_WRAPPER_READ_DESC;
+    public static final String IMMUTABLE_WRAPPER_WRITE_DESC;
+    public static final String IMMUTABLE_WRAPPER_APPLY_SYNC_DESC;
+    public static final String IMMUTABLE_WRAPPER_WRITE_SYNC_DESC;
+    public static final String IMMUTABLE_BSM_DESC;
+
+    static {
+        try {
+            IMMUTABLE_COMPONENT_WRAPPER_CTOR_DESC = Type.getConstructorDescriptor(ImmutableComponentWrapper.class.getDeclaredConstructor(ImmutableComponentKey.class, Object.class, ImmutableComponent.class));
+            COMPONENT_READ_FROM_NBT_DESC = Type.getMethodDescriptor(Component.class.getMethod("readFromNbt", NbtCompound.class, RegistryWrapper.WrapperLookup.class));
+            COMPONENT_WRITE_TO_NBT_DESC = Type.getMethodDescriptor(Component.class.getMethod("writeToNbt", NbtCompound.class, RegistryWrapper.WrapperLookup.class));
+            AUTO_SYNCED_COMPONENT_APPLY_SYNC_PACKET_DESC = Type.getMethodDescriptor(AutoSyncedComponent.class.getMethod("applySyncPacket", RegistryByteBuf.class));
+            AUTO_SYNCED_COMPONENT_WRITE_SYNC_PACKET_DESC = Type.getMethodDescriptor(AutoSyncedComponent.class.getMethod("writeSyncPacket", RegistryByteBuf.class, ServerPlayerEntity.class));
+            IMMUTABLE_WRAPPER_READ_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperRead", ImmutableComponentWrapper.class, NbtCompound.class, RegistryWrapper.WrapperLookup.class));
+            IMMUTABLE_WRAPPER_WRITE_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperWrite", ImmutableComponentWrapper.class, NbtCompound.class, RegistryWrapper.WrapperLookup.class));
+            IMMUTABLE_WRAPPER_APPLY_SYNC_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperApplySync", ImmutableComponentWrapper.class, RegistryByteBuf.class));
+            IMMUTABLE_WRAPPER_WRITE_SYNC_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperWriteSync", ImmutableComponentWrapper.class, RegistryByteBuf.class));
+            IMMUTABLE_BSM_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, MethodType.class, String.class, java.lang.reflect.Type.class));
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException("Failed to find one or more method descriptors", e);
+        }
+    }
+
     public static <C extends ImmutableComponent, O, W extends ImmutableComponentWrapper<C, O>> Class<W> makeWrapper(
         ImmutableComponentKey<C> key,
         Class<O> targetClass,
@@ -48,30 +80,30 @@ public final class CcaImmutableBootstrap {
         ClassNode writer = new ClassNode(CcaAsmHelper.ASM_VERSION);
         writer.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, CcaAsmHelper.STATIC_IMMUTABLE_COMPONENT_WRAPPER + "$" + CcaAsmHelper.getJavaIdentifierName(key.getId()), null, CcaAsmHelper.IMMUTABLE_COMPONENT_WRAPPER, null);
 
-        MethodVisitor init = writer.visitMethod(Opcodes.ACC_PUBLIC, "<init>", CcaAsmHelper.IMMUTABLE_COMPONENT_WRAPPER_CTOR_DESC, null, null);
+        MethodVisitor init = writer.visitMethod(Opcodes.ACC_PUBLIC, "<init>", IMMUTABLE_COMPONENT_WRAPPER_CTOR_DESC, null, null);
         init.visitCode();
         init.visitVarInsn(Opcodes.ALOAD, 0); // this
         init.visitVarInsn(Opcodes.ALOAD, 1); // key
         init.visitVarInsn(Opcodes.ALOAD, 2); // owner
         init.visitVarInsn(Opcodes.ALOAD, 3); // data
-        init.visitMethodInsn(Opcodes.INVOKESPECIAL, CcaAsmHelper.IMMUTABLE_COMPONENT_WRAPPER, "<init>", CcaAsmHelper.IMMUTABLE_COMPONENT_WRAPPER_CTOR_DESC, false);
+        init.visitMethodInsn(Opcodes.INVOKESPECIAL, CcaAsmHelper.IMMUTABLE_COMPONENT_WRAPPER, "<init>", IMMUTABLE_COMPONENT_WRAPPER_CTOR_DESC, false);
         init.visitInsn(Opcodes.RETURN);
         init.visitEnd();
 
         if (key.getMapCodec() != null) {
-            MethodVisitor readFromNbt = writer.visitMethod(Opcodes.ACC_PUBLIC, "readFromNbt", CcaAsmHelper.COMPONENT_READ_FROM_NBT_DESC, null, null);
+            MethodVisitor readFromNbt = writer.visitMethod(Opcodes.ACC_PUBLIC, "readFromNbt", COMPONENT_READ_FROM_NBT_DESC, null, null);
             readFromNbt.visitVarInsn(Opcodes.ALOAD, 0); // this
             readFromNbt.visitVarInsn(Opcodes.ALOAD, 1); // nbt
             readFromNbt.visitVarInsn(Opcodes.ALOAD, 2); // registries
-            readFromNbt.visitMethodInsn(Opcodes.INVOKESTATIC, CcaAsmHelper.IMMUTABLE_INTERNALS, "wrapperRead", CcaAsmHelper.IMMUTABLE_WRAPPER_READ_DESC, false);
+            readFromNbt.visitMethodInsn(Opcodes.INVOKESTATIC, CcaAsmHelper.IMMUTABLE_INTERNALS, "wrapperRead", IMMUTABLE_WRAPPER_READ_DESC, false);
             readFromNbt.visitInsn(Opcodes.RETURN);
             readFromNbt.visitEnd();
 
-            MethodVisitor writeToNbt = writer.visitMethod(Opcodes.ACC_PUBLIC, "writeToNbt", CcaAsmHelper.COMPONENT_WRITE_TO_NBT_DESC, null, null);
+            MethodVisitor writeToNbt = writer.visitMethod(Opcodes.ACC_PUBLIC, "writeToNbt", COMPONENT_WRITE_TO_NBT_DESC, null, null);
             writeToNbt.visitVarInsn(Opcodes.ALOAD, 0); // this
             writeToNbt.visitVarInsn(Opcodes.ALOAD, 1); // nbt
             writeToNbt.visitVarInsn(Opcodes.ALOAD, 2); // registries
-            writeToNbt.visitMethodInsn(Opcodes.INVOKESTATIC, CcaAsmHelper.IMMUTABLE_INTERNALS, "wrapperWrite", CcaAsmHelper.IMMUTABLE_WRAPPER_WRITE_DESC, false);
+            writeToNbt.visitMethodInsn(Opcodes.INVOKESTATIC, CcaAsmHelper.IMMUTABLE_INTERNALS, "wrapperWrite", IMMUTABLE_WRAPPER_WRITE_DESC, false);
             writeToNbt.visitInsn(Opcodes.RETURN);
             writeToNbt.visitEnd();
         }
@@ -79,17 +111,17 @@ public final class CcaImmutableBootstrap {
         if (key.getPacketCodec() != null) {
             writer.interfaces.add(CcaAsmHelper.AUTO_SYNCED_COMPONENT);
 
-            MethodVisitor applySyncPacket = writer.visitMethod(Opcodes.ACC_PUBLIC, "applySyncPacket", CcaAsmHelper.AUTO_SYNCED_COMPONENT_APPLY_SYNC_PACKET_DESC, null, null);
+            MethodVisitor applySyncPacket = writer.visitMethod(Opcodes.ACC_PUBLIC, "applySyncPacket", AUTO_SYNCED_COMPONENT_APPLY_SYNC_PACKET_DESC, null, null);
             applySyncPacket.visitVarInsn(Opcodes.ALOAD, 0); // this
             applySyncPacket.visitVarInsn(Opcodes.ALOAD, 1); // buf
-            applySyncPacket.visitMethodInsn(Opcodes.INVOKESTATIC, CcaAsmHelper.IMMUTABLE_INTERNALS, "wrapperApplySync", CcaAsmHelper.IMMUTABLE_WRAPPER_APPLY_SYNC_DESC, false);
+            applySyncPacket.visitMethodInsn(Opcodes.INVOKESTATIC, CcaAsmHelper.IMMUTABLE_INTERNALS, "wrapperApplySync", IMMUTABLE_WRAPPER_APPLY_SYNC_DESC, false);
             applySyncPacket.visitInsn(Opcodes.RETURN);
             applySyncPacket.visitEnd();
 
-            MethodVisitor writeSyncPacket = writer.visitMethod(Opcodes.ACC_PUBLIC, "writeSyncPacket", CcaAsmHelper.AUTO_SYNCED_COMPONENT_WRITE_SYNC_PACKET_DESC, null, null);
+            MethodVisitor writeSyncPacket = writer.visitMethod(Opcodes.ACC_PUBLIC, "writeSyncPacket", AUTO_SYNCED_COMPONENT_WRITE_SYNC_PACKET_DESC, null, null);
             writeSyncPacket.visitVarInsn(Opcodes.ALOAD, 0); // this
             writeSyncPacket.visitVarInsn(Opcodes.ALOAD, 1); // buf
-            writeSyncPacket.visitMethodInsn(Opcodes.INVOKESTATIC, CcaAsmHelper.IMMUTABLE_INTERNALS, "wrapperWriteSync", CcaAsmHelper.IMMUTABLE_WRAPPER_WRITE_SYNC_DESC, false);
+            writeSyncPacket.visitMethodInsn(Opcodes.INVOKESTATIC, CcaAsmHelper.IMMUTABLE_INTERNALS, "wrapperWriteSync", IMMUTABLE_WRAPPER_WRITE_SYNC_DESC, false);
             writeSyncPacket.visitInsn(Opcodes.RETURN);
             writeSyncPacket.visitEnd();
         }
@@ -120,7 +152,7 @@ public final class CcaImmutableBootstrap {
                 H_INVOKESTATIC,
                 CcaAsmHelper.IMMUTABLE_INTERNALS,
                 "bootstrap",
-                CcaAsmHelper.IMMUTABLE_BSM_DESC,
+                IMMUTABLE_BSM_DESC,
                 false),
             key.getId().toString(),
             Type.getType(targetClass));

@@ -58,7 +58,6 @@ import org.objectweb.asm.util.CheckClassAdapter;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.invoke.TypeDescriptor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
@@ -102,20 +101,6 @@ public final class CcaAsmHelper {
     public static final String STATIC_CONTAINER_FACTORY = createClassName("GeneratedContainerFactory");
     public static final String STATIC_IMMUTABLE_COMPONENT_WRAPPER = createClassName("GeneratedImmutableComponentWrapper");
     public static final String ABSTRACT_COMPONENT_CONTAINER_CTOR_DESC;
-    public static final String IMMUTABLE_COMPONENT_WRAPPER_CTOR_DESC;
-    public static final String COMPONENT_READ_FROM_NBT_DESC;
-    public static final String COMPONENT_WRITE_TO_NBT_DESC;
-    public static final String AUTO_SYNCED_COMPONENT_APPLY_SYNC_PACKET_DESC;
-    public static final String AUTO_SYNCED_COMPONENT_WRITE_SYNC_PACKET_DESC;
-    public static final String IMMUTABLE_WRAPPER_READ_DESC;
-    public static final String IMMUTABLE_WRAPPER_WRITE_DESC;
-    public static final String IMMUTABLE_WRAPPER_APPLY_SYNC_DESC;
-    public static final String IMMUTABLE_WRAPPER_WRITE_SYNC_DESC;
-    public static final String SERVER_TICK_DESC;
-    public static final String CLIENT_TICK_DESC;
-    public static final String IMMUTABLE_WRAPPER_SERVER_TICK_DESC;
-    public static final String IMMUTABLE_WRAPPER_CLIENT_TICK_DESC;
-    public static final String IMMUTABLE_BSM_DESC;
 
     private static final List<AsmGeneratedCallbackInfo> asmGeneratedCallbacks = findAsmComponentCallbacks();
 
@@ -124,20 +109,6 @@ public final class CcaAsmHelper {
     static {
         try {
             ABSTRACT_COMPONENT_CONTAINER_CTOR_DESC = Type.getConstructorDescriptor(AbstractComponentContainer.class.getConstructor());
-            IMMUTABLE_COMPONENT_WRAPPER_CTOR_DESC = Type.getConstructorDescriptor(ImmutableComponentWrapper.class.getDeclaredConstructor(ImmutableComponentKey.class, Object.class, ImmutableComponent.class));
-            COMPONENT_READ_FROM_NBT_DESC = Type.getMethodDescriptor(Component.class.getMethod("readFromNbt", NbtCompound.class, RegistryWrapper.WrapperLookup.class));
-            COMPONENT_WRITE_TO_NBT_DESC = Type.getMethodDescriptor(Component.class.getMethod("writeToNbt", NbtCompound.class, RegistryWrapper.WrapperLookup.class));
-            AUTO_SYNCED_COMPONENT_APPLY_SYNC_PACKET_DESC = Type.getMethodDescriptor(AutoSyncedComponent.class.getMethod("applySyncPacket", RegistryByteBuf.class));
-            AUTO_SYNCED_COMPONENT_WRITE_SYNC_PACKET_DESC = Type.getMethodDescriptor(AutoSyncedComponent.class.getMethod("writeSyncPacket", RegistryByteBuf.class, ServerPlayerEntity.class));
-            IMMUTABLE_WRAPPER_READ_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperRead", ImmutableComponentWrapper.class, NbtCompound.class, RegistryWrapper.WrapperLookup.class));
-            IMMUTABLE_WRAPPER_WRITE_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperWrite", ImmutableComponentWrapper.class, NbtCompound.class, RegistryWrapper.WrapperLookup.class));
-            IMMUTABLE_WRAPPER_APPLY_SYNC_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperApplySync", ImmutableComponentWrapper.class, RegistryByteBuf.class));
-            IMMUTABLE_WRAPPER_WRITE_SYNC_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("wrapperWriteSync", ImmutableComponentWrapper.class, RegistryByteBuf.class));
-            IMMUTABLE_WRAPPER_SERVER_TICK_DESC = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(ImmutableComponentWrapper.class));
-            IMMUTABLE_WRAPPER_CLIENT_TICK_DESC = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(ImmutableComponentWrapper.class));
-            SERVER_TICK_DESC = Type.getMethodDescriptor(ServerTickingComponent.class.getMethod("serverTick"));
-            CLIENT_TICK_DESC = Type.getMethodDescriptor(ClientTickingComponent.class.getMethod("clientTick"));
-            IMMUTABLE_BSM_DESC = Type.getMethodDescriptor(ImmutableInternals.class.getMethod("bootstrap", MethodHandles.Lookup.class, String.class, TypeDescriptor.class, String.class, java.lang.reflect.Type.class));
         } catch (NoSuchMethodException e) {
             throw new IllegalStateException("Failed to find one or more method descriptors", e);
         }

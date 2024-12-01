@@ -29,17 +29,13 @@ import java.util.Map;
 import java.util.Set;
 
 public class ImmutableInternals {
-    private static final MethodHandle SET;
-    private static final MethodHandle DECONSTRUCT_WRAPPER;
     private static final MethodHandle RUN_TRANSFORMER;
 
     static {
         try {
-            DECONSTRUCT_WRAPPER = MethodHandles.lookup().findStatic(ImmutableInternals.class, "deconstructWrapper", MethodType.methodType(Object.class.arrayType(), ImmutableComponentWrapper.class));
-            SET = MethodHandles.lookup().findVirtual(ImmutableComponentWrapper.class, "setData", MethodType.methodType(void.class, ImmutableComponent.class));
             RUN_TRANSFORMER = MethodHandles.lookup().findStatic(ImmutableInternals.class, "runTransformer", MethodType.methodType(void.class, ImmutableComponent.Modifier.class, ImmutableComponentWrapper.class));
         } catch (NoSuchMethodException | IllegalAccessException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("Failed to find one or more method handles", e);
         }
     }
 
@@ -58,24 +54,18 @@ public class ImmutableInternals {
         listeners.computeIfAbsent(type, $ -> new HashMap<>()).put(Pair.of(key.getId(), target), modifier);
     }
 
-    public static Object bootstrap(MethodHandles.Lookup lookup, String methodName, TypeDescriptor type,
+    public static Object bootstrap(MethodHandles.Lookup lookup,
+                                   String methodName,
+                                   MethodType methodType,
                                    String id,
                                    Type targetClass) throws Throwable {
-        MethodType methodType;
-        if (type instanceof MethodType mt) {
-            methodType = mt;
-        } else {
-            methodType = null;
-            if (!MethodHandle.class.equals(type))
-                throw new IllegalArgumentException(type.toString());
-        }
         ImmutableComponentCallbackType<?> callbackType = CALLBACK_TYPES.stream()
             .filter(t -> t.methodName().equals(methodName))
-            .filter(t -> methodType == null || t.implType().equals(methodType))
+            .filter(t -> t.implType().equals(methodType))
             .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Invalid method name/type: %s:%s".formatted(methodName, methodType == null ? "?" : methodType.descriptorString())));
+            .orElseThrow(() -> new IllegalArgumentException("Invalid method name/type: %s:%s".formatted(methodName, methodType.descriptorString())));
         MethodHandle handle = makeModifierHandler(lookup, id, targetClass, listeners.getOrDefault(callbackType, Map.of()));
-        return methodType != null ? new ConstantCallSite(handle) : handle;
+        return new ConstantCallSite(handle);
     }
 
     private static MethodHandle makeModifierHandler(MethodHandles.Lookup lookup, String id, Type targetClass, Map<Pair<Identifier, Type>, ImmutableComponent.Modifier<?, ?>> handlers) throws NoSuchMethodException, IllegalAccessException {

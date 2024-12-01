@@ -36,7 +36,7 @@ import org.ladysnake.cca.api.v3.entity.RespawnCopyStrategy;
 import org.ladysnake.cca.internal.base.ImmutableInternals;
 import org.ladysnake.cca.internal.base.LazyDispatcher;
 import org.ladysnake.cca.internal.base.QualifiedComponentFactory;
-import org.ladysnake.cca.internal.base.asm.CcaImmutableBootstrap;
+import org.ladysnake.cca.internal.base.asm.ImmutableComponentsAsm;
 import org.ladysnake.cca.internal.base.asm.StaticComponentLoadingException;
 import org.ladysnake.cca.internal.base.asm.StaticComponentPluginBase;
 
@@ -311,12 +311,12 @@ public final class StaticEntityComponentPlugin extends LazyDispatcher implements
         public void end(ImmutableComponentFactory<E, C> factory) {
             try {
                 StaticEntityComponentPlugin.this.checkLoading(Registration.class, "end");
-                Class<? extends ImmutableComponentWrapper<C, E>> componentClass = CcaImmutableBootstrap.makeWrapper(
+                Class<? extends ImmutableComponentWrapper<C, E>> componentClass = ImmutableComponentsAsm.makeWrapper(
                     this.key,
                     this.target,
                     this.callbacks.keySet()
                 );
-                ComponentFactory<E, ? extends ImmutableComponentWrapper<C, E>> componentFactory = CcaImmutableBootstrap.makeFactory(this.key, this.target, componentClass, factory);
+                ComponentFactory<E, ? extends ImmutableComponentWrapper<C, E>> componentFactory = ImmutableComponentsAsm.makeFactory(this.key, this.target, componentClass, factory);
                 if (this.test == null) {
                     StaticEntityComponentPlugin.this.register0(
                         this.target,
